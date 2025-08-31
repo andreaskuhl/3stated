@@ -43,8 +43,10 @@ Version 1.0.0
   => In GitHub ein Issue einstellen, natürlich ebenso bei Fehlern!
   
 ## Installation
-Einfach im "scripts"-Verzeichnis der SD-Karte ein Verzeichnis "3stated" anlegen. Anschließend "main.lua" und das "i18n"-Verzeichnis hinein kopieren (für Details zur LUA-Widget-Skript-Installation einfach im Internet suchen - ist schon vielfach beschrieben).  
+Aus dem aktuellen GitHub-Release die 3stated_x_x_x.zip herunterladen und daraus das Verzeichnis "3stated"  in das "scripts"-Verzeichnis der X20-SD-Karte kopieren.
 Beim nächsten Sender-Start sollte das Widget auswählbar sein.
+Für weitere Details zur LUA-Widget-Skript-Installation einfach im Internet suchen. Dies wurde schon vielfach beschrieben.  
+
 
 ## Danksagung
 Vielen Dank für die folgenden hilfreichen Beispiele:
