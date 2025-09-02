@@ -47,14 +47,17 @@ Aus dem aktuellen GitHub-Release die 3stated_x_x_x.zip herunterladen und daraus 
 Beim nächsten Sender-Start sollte das Widget auswählbar sein.
 Für weitere Details zur LUA-Widget-Skript-Installation einfach im Internet suchen. Dies wurde schon vielfach beschrieben.  
 
-
 ## Danksagung
 Vielen Dank für die folgenden hilfreichen Beispiele:
   - Schalteranzeige (V1.4 vom 28.12.2024), JecoBerlin
   - Ethos-Status-widget / Ethos-TriStatus-widget (V2.1 vom 30.07.2025), Lothar Thole (https://github.com/lthole)
-  
+
+## Bilder
+Beispiel-Zustandsanzeigen:
 
 ![Beispiel Staus-Anzeigen](./images/example.png)
+
+Widget-Konfiguration:
 
 ![Konfiguration (Teil 1)](./images/configuration_1.png)
 ![Konfiguration (Teil 2)](./images/configuration_2.png)
