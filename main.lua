@@ -23,7 +23,7 @@
 local STR               = assert(loadfile("i18n/i18n.lua"))().translate
 
 --- Application control and information
-local WIDGET_VERSION    = "1.0.0"                                 -- Version information
+local WIDGET_VERSION    = "1.0.2"                                 -- Version information
 local WIDGET_AUTOR      = "Andreas Kuhl (github.com/andreaskuhl)" -- Author information
 local WIDGET_KEY        = "3STATED"                               -- Unique widget key (max. 7 characters)
 local DEBUG_PREFIX      = "Widget " .. WIDGET_KEY .. " - "        -- Prefix for debug messages
@@ -446,6 +446,14 @@ end
 local function write(widget)
     debugInfo("write", "")
 
+    -- write widget version number for user data format
+    -- (storage of the version number only introduced with version 1.1.0)
+    local versionNumber = 10000 * tonumber(string.match(WIDGET_VERSION, "(%d+)")) +
+        100 * tonumber(string.match(WIDGET_VERSION, "%.(%d+)")) +
+        tonumber(string.match(WIDGET_VERSION, "%.(%d+)$"))
+    storage.write("Version", versionNumber)
+    debugInfo("write", "store version: " .. versionNumber)
+
     -- Source and source switch
     storage.write("Source", widget.source)
     storage.write("SourceShow", widget.sourceShow)
@@ -478,8 +486,25 @@ end
 local function read(widget)
     debugInfo("read")
 
-    -- source and source switch
-    widget.source = storage.read("Source")
+    -- check first field Version number ( storage of the version number only introduced with version 1.1.0)
+    local firstField = storage.read("Version")
+    local versionNumber = 10000 --- date source version number , default: 10000 (version 1.0.0)
+
+    if firstField == nil or type(firstField) ~= "number" then
+        debugInfo("read", "no version found -> set to Version 1.0.0 (010000)")
+        versionNumber = 10000
+    else
+        versionNumber = firstField
+        debugInfo("read", "found version: " .. tostring(versionNumber))
+    end
+
+    if versionNumber == 10000 then
+        --  Version == 1.0.0.: no version number stored -> first field is source
+        widget.source = firstField
+    else
+        -- Version > 1.0.0 first field is version number -> read source
+        widget.source = storage.read("Source")
+    end
     widget.sourceShow = storage.read("SourceShow")
 
     -- title text, background color and text color

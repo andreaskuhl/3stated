@@ -60,3 +60,12 @@ Vielen Dank für die folgenden hilfreichen Beispiele:
 ![Konfiguration (Teil 2)](./images/configuration_2.png)
 ![Konfiguration (Teil 3)](./images/configuration_3.png)
 ![Konfiguration (Teil 4)](./images/configuration_4.png)
+
+
+# Release Informationen
+
+| Version |   Datum    | Inhalte                                                                                                                                                                                   |
+| ------: | :--------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|   1.0.2 | 02.09.2025 | Implementierung der Benutzerdaten-Versionsnummer zur Identifizierung und Konvertierung älterer Benutzerdaten älterer Widget-Versions-Daten. Interne Erweiterung für zukünftige Verwendung - kein Update aus Benutzersicht notwendig. |
+|   1.0.1 | 31.08.2025 | Update Readme: Angepasste Installations-Beschreibung. Kein eigenständiges Release-Paket.                                                                                                                                     |
+|   1.0.0 | 31.08.2025 | Erstes offizielles Release.                                                                                                                                                               |
