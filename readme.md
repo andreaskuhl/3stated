@@ -1,5 +1,5 @@
 ## 🌐 Other Languages |  Andere Sprachen 
-- [German | Deutsch](README.de.md)
+- [German | Deutsch](readme.de.md)
   
 ℹ️ The English version is AI-translated from the German version readme.de.md.
 ***
