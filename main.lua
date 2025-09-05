@@ -4,7 +4,7 @@
 ---  Widget für die textuelle und farbliche Anzeige von 3 Zuständen einer Quelle (Schalter, Variablen, ...).
 ---  Dokumentation: file://./readme.md
 ---
----  Entwicklungsumgebung: Ethos X20S-Simulator Version 1.6.2
+---  Entwicklungsumgebung: Ethos X20S-Simulator Version 1.6.3
 ---  Testumgebung:         FrSky Tandem X20 | Ethos 1.6.3 EU | Bootloader 1.4.15
 ---
 ---  Autor: Andreas Kuhl (https://github.com/andreaskuhl)
@@ -19,35 +19,69 @@
 --- Modul locals (constants)
 ------------------------------------------------------------------------------------------------------------------------
 
---- Function for retrieving translations from translation files
-local STR               = assert(loadfile("i18n/i18n.lua"))().translate
-
 --- Application control and information
-local WIDGET_VERSION    = "1.0.2"                                 -- Version information
-local WIDGET_AUTOR      = "Andreas Kuhl (github.com/andreaskuhl)" -- Author information
-local WIDGET_KEY        = "3STATED"                               -- Unique widget key (max. 7 characters)
-local DEBUG_PREFIX      = "Widget " .. WIDGET_KEY .. " - "        -- Prefix for debug messages
-local DEBUG_MODE        = true                                    -- true: show Debug information
+local WIDGET_VERSION      = "1.0.3"                                 -- version information
+local WIDGET_AUTOR        = "Andreas Kuhl (github.com/andreaskuhl)" -- author information
+local WIDGET_KEY          = "3STATED"                               -- unique widget key (max. 7 characters)
+local DEBUG_PREFIX        = "Widget " .. WIDGET_KEY .. " - "        -- prefix for debug messages
+local DEBUG_MODE          = true                                    -- true: show debug information, false: release mode
+
+--- Translation
+local currentLocale       = system.getLocale()                            -- current system language for check if language has changed
+local STR                 = assert(loadfile("i18n/i18n.lua"))().translate -- load i18n and get translate function
+local WidgetNameASCII     = {                                             -- Widget name in different languages (ASCII only)
+    ["cs"] = "3-stavovy-displej",                                         -- 3-stavový-displej
+    ["de"] = "3-Zustand-Anzeige",                                         --
+    ["en"] = "3-State-Display",                                           --
+    ["es"] = "3-Estados-Indicador",                                       --
+    ["fr"] = "3-Etats-Affichage",                                         -- "3-États-Affichage"
+    ["it"] = "3-Stati-Display",                                           --
+}
 
 --- List indexes (used for listText, listBGColor and listTxColor)
-local TITLE_INDEX       = 1
-local STATE_DOWN        = 2
-local STATE_MIDDLE      = 3
-local STATE_UP          = 4
+local TITLE_INDEX         = 1
+local STATE_DOWN          = 2
+local STATE_MIDDLE        = 3
+local STATE_UP            = 4
 
 --- Defaults
-local THRESHOLD_MIN     = -1024 -- Minimum threshold for configuration form.
-local THRESHOLD_MAX     = 1024  -- Minimum threshold for configuration form.
+local THRESHOLD_MIN       = -1024 -- Minimum threshold for configuration form.
+local THRESHOLD_MAX       = 1024  -- Minimum threshold for configuration form.
 
 --- User interface
-local listConfTitle_int = { STR("Title"), STR("StateDown"), STR("StateMiddle"), STR("StateUp") }         -- Text configuration title (1-4)
-local fontSizeList      = { FONT_XS, FONT_S, FONT_L, FONT_STD, FONT_XL, FONT_XXL }                       -- Global font IDs (1-6)
-local fontSizeSelection = { { "XS", 1 }, { "S", 2 }, { "M", 3 }, { "L", 4 }, { "XL", 5 }, { "XXL", 6 } } -- Font list for config listbox
-
+local CONF_TITLES         = { "Title", "StateDown", "StateMiddle", "StateUp" }       -- configuration title (1-4)
+local FONT_SIZES          = { FONT_XS, FONT_S, FONT_L, FONT_STD, FONT_XL, FONT_XXL } -- global font IDs (1-6)
+local FONT_SIZE_SELECTION = { { "XS", 1 }, { "S", 2 }, { "M", 3 }, { "L", 4 },
+    { "XL", 5 }, { "XXL", 6 } }                                                      -- font list for config listbox
 
 ------------------------------------------------------------------------------------------------------------------------
 ------ Helper functions
 ------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
+---  Debug output function.
+---  If DEBUG_MODE is true, it prints debug information to the console.
+---  Format: "<tick> Widget <widget name> - <function name>() - <info text>"
+local function debugInfo(functionName, infotext)
+    if DEBUG_MODE then
+        -- if infotext == nil then infotext = "" else infotext = ": " .. infotext end
+        infotext = (infotext == nil) and "" or (": " .. infotext)
+        print(string.format("%06d ", math.floor(os.clock() * 1000)) ..
+            DEBUG_PREFIX .. functionName .. "()" .. infotext)
+    end
+end
+
+------------------------------------------------------------------------------------------------------------------------
+-- Check if the system language has changed and reload i18n if necessary.
+local function updateLanguage()
+    local localeNow = system.getLocale()
+    if localeNow ~= currentLocale then
+        -- Language has changed, reload i18n
+        debugInfo("updateLanguage", "Language changed from " .. currentLocale .. " to " .. localeNow)
+        STR = assert(loadfile("i18n/i18n.lua"))().translate
+        currentLocale = localeNow
+    end
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 --- Check if the widget source exists and is valid.
@@ -62,26 +96,15 @@ local function existText(text)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
---- Return the widget name.
-local function name()
-    return STR("WidgetName")
-end
-
-------------------------------------------------------------------------------------------------------------------------
----  Debug output function.
----  If DEBUG_MODE is true, it prints debug information to the console.
----  Format: "<tick> Widget <widget name> - <function name>() - <info text>"
-local function debugInfo(functionName, infotext)
-    if DEBUG_MODE then
-        -- if infotext == nil then infotext = "" else infotext = ": " .. infotext end
-        infotext = (infotext == nil) and "" or (": " .. infotext)
-        print(string.format("%06d ", math.floor(os.clock() * 1000)) .. DEBUG_PREFIX .. functionName .. "()" .. infotext)
-    end
-end
-
-------------------------------------------------------------------------------------------------------------------------
 --- Widget handler
 ------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
+-- Handler to get the widget name in the current system language.
+local function name() -- Widget name (ASCII) - only for name() Handler
+    local lang = system.getLocale and system.getLocale() or "en"
+    return WidgetNameASCII[lang] or WidgetNameASCII["en"]
+end
 
 ------------------------------------------------------------------------------------------------------------------------
 --- Handler to create a new widget instance with default values.
@@ -89,28 +112,28 @@ local function create()
     debugInfo("create")
 
     -- Defaults
-    local BGCOLORTITLE = lcd.RGB(40, 40, 40)    -- title background  -> dark gray
-    local TXCOLORTITLE = lcd.RGB(176, 176, 176) -- title text        -> light gray
-    local BGCOLORDOWN  = lcd.RGB(0, 128, 0)     -- down background     -> green
-    local TXCOLORDOWN  = COLOR_WHITE            -- down text         -> white
-    local BGCOLORMID   = lcd.RGB(192, 128, 0)   -- middle background -> orange
-    local TXCOLORMID   = COLOR_WHITE            -- middle text       -> white
-    local BGCOLORUP    = lcd.RGB(192, 0, 0)     -- up background   -> red
-    local TXCOLORUP    = COLOR_WHITE            -- up text           -> white
+    local BG_COLOR_TITLE = lcd.RGB(40, 40, 40)    -- title background  -> dark gray
+    local TX_COLOR_TITLE = lcd.RGB(176, 176, 176) -- title text        -> light gray
+    local BG_COLOR_DOWN  = lcd.RGB(0, 128, 0)     -- down background   -> green
+    local TX_COLOR_DOWN  = COLOR_WHITE            -- down text         -> white
+    local BG_COLOR_MID   = lcd.RGB(192, 128, 0)   -- middle background -> orange
+    local TX_COLOR_MID   = COLOR_WHITE            -- middle text       -> white
+    local BG_COLOR_UP    = lcd.RGB(192, 0, 0)     -- up background     -> red
+    local TX_COLOR_UP    = COLOR_WHITE            -- up text           -> white
 
     --- Create widget data structure with default values.
     return {
         value = {},                                                                        -- source value
         state = STATE_DOWN,                                                                -- actual state (1-3) meant(down/middle/up)
-        sourceShow = true,                                                                 -- Source switch
-        titleShow = true,                                                                  -- Title switch
-        titleColorUse = true,                                                              -- Title color switch
+        sourceShow = true,                                                                 -- source switch
+        titleShow = true,                                                                  -- title switch
+        titleColorUse = true,                                                              -- title color switch
         thresholdDown = -50,                                                               -- threshold for state down
         thresholdUp = 50,                                                                  -- threshold for state up
-        fontSizeIndex = 6,                                                                 -- index of font size - see fontSizeList (1=XS - 6=XXL)
+        fontSizeIndex = 6,                                                                 -- index of font size - see fontSizes (1=XS - 6=XXL)
         listText = { STR("Title"), STR("StateDown"), STR("StateMiddle"), STR("StateUp") }, -- text list: title (1) and state (2-4)
-        listBGColor = { BGCOLORTITLE, BGCOLORDOWN, BGCOLORMID, BGCOLORUP },                -- background color list: title (1) and state (2-4)
-        listTxColor = { TXCOLORTITLE, TXCOLORDOWN, TXCOLORMID, TXCOLORUP },                -- text color list: title (1) and state (2-4)
+        listBGColor = { BG_COLOR_TITLE, BG_COLOR_DOWN, BG_COLOR_MID, BG_COLOR_UP },        -- background color list: title (1) and state (2-4)
+        listTxColor = { TX_COLOR_TITLE, TX_COLOR_DOWN, TX_COLOR_MID, TX_COLOR_UP },        -- text color list: title (1) and state (2-4)
         debugMode = false,                                                                 -- true: shows internal values in the widget
     }
 end
@@ -151,15 +174,14 @@ local function wakeup(widget)
 
         if isChanged then
             debugInfo("isStateChanged",
-                "state is changed to " .. widget.state .. " = " .. listConfTitle_int[widget.state])
+                "state is changed to " .. widget.state .. " = " .. STR(CONF_TITLES[widget.state]))
         end
 
         return isChanged
     end
 
     --------------------------------------------------------------------------------------------------------------------
-    --- Wakeup main
-    -- debugInfo("wakeup")
+    -- Wakeup main
     if isStateChanged(widget) then
         lcd.invalidate()
         debugInfo("wakeup", "LCD invalidate")
@@ -169,13 +191,13 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --- Handler to paint (draw) the widget.
 local function paint(widget)
-    local title_h       = 0
+    local titleHeight   = 0 -- height of title box
 
     -- Vertical alignment constants for function drawTextCentered()
-    local FREE_TOP      = 3 -- pixel free space at Top
-    local FREE_TITLE    = 3 -- pixel free space below Title
+    local FREE_ABOVE    = 3 -- pixel free space at above title and/or text
+    local FREE_BELOW    = 3 -- pixel free space below title and/or text
     local LINE_TOP      = 1 -- align top
-    local LINE_CENTERED = 2 -- align middle (centered)
+    local LINE_CENTERED = 2 -- align middle (vertical centered)
     local LINE_BOTTOM   = 3 -- align bottom
 
     ---------------------------------------------------------------------------------------------------------------------
@@ -183,32 +205,32 @@ local function paint(widget)
     --- Parameters:
     ---   text         : text to draw (string)
     ---   fontSize     : font size (FONT_XS, FONT_S, FONT_L, FONT_STD, FONT_XL, FONT_XXL) - default: FONT_STD
-    ---   verticalAlign: vertical alignment (LINE_TOP, LINE_CENTERED, LINE_BOTTOM) - default: LINE_CENTERED
-    ---   shiftLine    : shift line (0 = no shift, -1 = one line up, 1 = one line down) - default: 0
+    ---   verticalAlign: vertical alignment (LINE_ABOVE, LINE_CENTERED, LINE_BELOW) - default: LINE_CENTERED
+    ---   shiftLine    : shift line (example: 0 = no shift, -1 = one line up, 0.5 = half line down) - default: 0
     --------------------------------------------------------------------------------------------------------------------
     local function drawTextCentered(text, fontSize, verticalAlign, shiftLine)
-        local text_w, text_h
-        local yPos
+        local textWidth, textHeight -- text width and height
+        local textPosY              -- text y position
 
-        if text == nil or text == "" then return end
-        if fontSize == nil then fontSize = FONT_STD end
-        if verticalAlign == nil then verticalAlign = LINE_CENTERED end
-        if shiftLine == nil then shiftLine = 0 end
+        if not existText(text) then return end
+        if not fontSize then fontSize = FONT_STD end
+        if not verticalAlign then verticalAlign = LINE_CENTERED end
+        if not shiftLine then shiftLine = 0 end
 
         lcd.font(fontSize) -- set font size
-        _, text_h = lcd.getTextSize("")
+        _, textHeight = lcd.getTextSize("")
 
         if verticalAlign == LINE_TOP then        -- align top
-            yPos = FREE_TOP + title_h
+            textPosY = FREE_ABOVE + titleHeight
         elseif verticalAlign == LINE_BOTTOM then -- align bottom
-            yPos = (widget.h - text_h)
+            textPosY = (widget.h - textHeight)   -- not FREE_BELOW, text height include enough descender (Unterlänge)
         else                                     -- align centered (default)
-            yPos = ((widget.h - title_h - FREE_TOP) / 2 - text_h / 2) + title_h + FREE_TOP
+            textPosY = FREE_ABOVE + ((widget.h - titleHeight - FREE_ABOVE) / 2 - textHeight / 2) + titleHeight
         end
 
-        yPos = yPos + (shiftLine * text_h) -- shift line
+        textPosY = textPosY + (shiftLine * textHeight) -- shift line
 
-        lcd.drawText((widget.w / 2), yPos, text, TEXT_CENTERED)
+        lcd.drawText((widget.w / 2), textPosY, text, TEXT_CENTERED)
     end
 
     --------------------------------------------------------------------------------------------------------------------
@@ -218,16 +240,16 @@ local function paint(widget)
         local titleText = ""
         local local_title_h
 
-        title_h = 0
+        titleHeight = 0
         if not widget.sourceShow and not widget.titleShow then return end
 
         -- calculate title box height
         lcd.font(FONT_S)
         _, local_title_h = lcd.getTextSize("")
-        local_title_h = FREE_TOP + local_title_h + FREE_TITLE
+        local_title_h = FREE_ABOVE + local_title_h + FREE_BELOW
 
         if widget.titleColorUse then
-            --- draw title background and set title text color
+            -- draw title background and set title text color
             lcd.color(widget.listBGColor[TITLE_INDEX])
             lcd.drawFilledRectangle(0, 0, widget.w, local_title_h)
             lcd.color(widget.listTxColor[TITLE_INDEX])
@@ -235,8 +257,8 @@ local function paint(widget)
             -- set state text color
             lcd.color(widget.listTxColor[widget.state])
         end
-        --- set source text
-        if widget.sourceShow then -- set source text
+        if widget.sourceShow then
+            -- set source text
             if existWidgetSource(widget) then
                 sourceText = widget.source:name()
             else
@@ -261,7 +283,7 @@ local function paint(widget)
             drawTextCentered(titleText, FONT_S, LINE_TOP, 0)
         end
 
-        title_h = local_title_h
+        titleHeight = local_title_h
     end
     --------------------------------------------------------------------------------------------------------------------
     --- Paint debug information (shows internal values of the widget).
@@ -271,8 +293,10 @@ local function paint(widget)
 
         local line = {}
 
+        --- line 1: source name and value
         line[1] = STR("Source") .. " " .. widget.source:name() .. ": " .. widget.value
 
+        -- line 2: state and thresholds
         if widget.state == STATE_DOWN then
             line[2] = "< " .. widget.thresholdDown
         elseif widget.state == STATE_MIDDLE then
@@ -281,14 +305,16 @@ local function paint(widget)
             line[2] = ">= " .. widget.thresholdUp
         end
 
+        -- line 3: state text
         if line[2] then
-            line[2] = line[2] .. " -> " .. listConfTitle_int[widget.state]
+            line[2] = line[2] .. " -> " .. STR(CONF_TITLES[widget.state])
             line[3] = "\"" .. widget.listText[widget.state] .. "\""
         else
             line[2] = "Status: " .. STR("StateUnknown")
             line[3] = ""
         end
 
+        -- draw debug lines
         drawTextCentered(line[1], FONT_S, LINE_CENTERED, -1)
         drawTextCentered(line[2], FONT_S, LINE_CENTERED, 0)
         drawTextCentered(line[3], FONT_S, LINE_CENTERED, 1)
@@ -304,7 +330,7 @@ local function paint(widget)
         lcd.color(widget.listBGColor[widget.state])
         lcd.drawFilledRectangle(0, 0, widget.w, widget.h)
 
-        --- paint title
+        --- paint title (must be before paint state text or debug information)
         paintTitle()
 
         lcd.color(widget.listTxColor[widget.state])
@@ -313,7 +339,7 @@ local function paint(widget)
         if widget.debugMode then
             paintDebugInfo()
         else
-            drawTextCentered(widget.listText[widget.state], fontSizeList[widget.fontSizeIndex], LINE_CENTERED)
+            drawTextCentered(widget.listText[widget.state], FONT_SIZES[widget.fontSizeIndex], LINE_CENTERED)
         end
     end
 
@@ -324,16 +350,20 @@ local function paint(widget)
         lcd.color(COLOR_BLACK)
         lcd.drawFilledRectangle(0, 0, widget.w, widget.h)
 
+        --- paint title (must be before paint state text or debug information)
         paintTitle()
 
+        -- paint "Source missed" text
         lcd.color(COLOR_RED)
-        drawTextCentered(STR("SourceMissed"), fontSizeList[FONT_STD], LINE_CENTERED)
+        drawTextCentered(STR("SourceMissed"), FONT_SIZES[FONT_STD], LINE_CENTERED)
     end
 
     --------------------------------------------------------------------------------------------------------------------
     --- Paint main
     debugInfo("paint")
-    if widget.h == nil then -- calculate widget
+    updateLanguage()        -- check if system language has changed
+
+    if not widget.h then -- calculate widget
         debugInfo("paint", "calcWidget")
         widget.w, widget.h = lcd.getWindowSize()
     end
@@ -356,17 +386,16 @@ local function configure(widget)
     --------------------------------------------------------------------------------------------------------------------
     --- Add configuration for title or state (text, background color and text color).
     local function addConfigBlock(index)
-        local line
-
-        line = form.addLine(listConfTitle_int[index] .. " " .. STR("Text"))
+  
+        line = form.addLine(STR(CONF_TITLES[index]) .. " " .. STR("Text"))
         form.addTextField(line, nil, function() return widget.listText[index] end,
             function(value) widget.listText[index] = value end)
 
-        line = form.addLine(listConfTitle_int[index] .. " " .. STR("BackgroundColor"))
+        line = form.addLine(STR(CONF_TITLES[index]) .. " " .. STR("BackgroundColor"))
         form.addColorField(line, nil, function() return widget.listBGColor[index] end,
             function(color) widget.listBGColor[index] = color end)
 
-        line = form.addLine(listConfTitle_int[index] .. " " .. STR("TextColor"))
+        line = form.addLine(STR(CONF_TITLES[index]) .. " " .. STR("TextColor"))
         form.addColorField(line, nil, function() return widget.listTxColor[index] end,
             function(color) widget.listTxColor[index] = color end)
     end
@@ -381,6 +410,7 @@ local function configure(widget)
     --------------------------------------------------------------------------------------
     --- Configure main
     debugInfo("configure")
+    updateLanguage() -- check if system language has changed
 
     -- Source
     line = form.addLine(STR("Source"))
@@ -401,20 +431,20 @@ local function configure(widget)
     addConfigBlock(TITLE_INDEX) -- title
 
     -- Title color use switch
-    line = form.addLine(listConfTitle_int[TITLE_INDEX] .. " " .. STR("ColorUse"))
+    line = form.addLine(STR(CONF_TITLES[TITLE_INDEX]) .. " " .. STR("ColorUse"))
     form.addBooleanField(line, nil, function() return widget.titleColorUse end,
         function(value) widget.titleColorUse = value end)
 
 
     -- STATE_DOWN threshold
-    line = form.addLine(STR "Threshold" .. " " .. listConfTitle_int[STATE_DOWN])
+    line = form.addLine(STR "Threshold" .. " " .. STR(CONF_TITLES[STATE_DOWN]))
     f = form.addNumberField(line, nil, THRESHOLD_MIN * 10, THRESHOLD_MAX * 10,
         function() return widget.thresholdDown * 10 end,
         function(value) widget.thresholdDown = value / 10 end);
     f:decimals(1)
 
     -- STATE_UP threshold
-    line = form.addLine(STR "Threshold" .. " " .. listConfTitle_int[STATE_UP])
+    line = form.addLine(STR "Threshold" .. " " .. STR(CONF_TITLES[STATE_UP]))
     f = form.addNumberField(line, nil, THRESHOLD_MIN * 10, THRESHOLD_MAX * 10,
         function() return widget.thresholdUp * 10 end,
         function(value) widget.thresholdUp = value / 10 end);
@@ -422,7 +452,7 @@ local function configure(widget)
 
     -- Font size
     line = form.addLine(STR "FontSize")
-    form.addChoiceField(line, nil, fontSizeSelection, function() return widget.fontSizeIndex end,
+    form.addChoiceField(line, nil, FONT_SIZE_SELECTION, function() return widget.fontSizeIndex end,
         function(value) widget.fontSizeIndex = value end)
 
     -- All states (with text, background color and text color)
@@ -537,12 +567,12 @@ local function init()
     system.registerWidget({
         key = WIDGET_KEY,
         name = name,
+        wakeup = wakeup,
         create = create,
         paint = paint,
         configure = configure,
         read = read,
         write = write,
-        wakeup = wakeup,
         title = false
     })
 end
