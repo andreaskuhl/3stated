@@ -16,6 +16,13 @@ Version 1.0.0
 | Author           | Andreas Kuhl (https://github.com/andreaskuhl)       |
 | License          | GPL 3.0                                             |
 
+If you like it you can support it by making a donation!
+<p>
+  <a href="https://www.paypal.com/donate/?hosted_button_id=JWPUZ76CCV4FU">
+      <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" alt="paypal">
+  </a>
+</p>
+
 - [Functionality](#functionality)
 - [Ideas for Further Features](#ideas-for-further-features)
 - [Installation](#installation)
