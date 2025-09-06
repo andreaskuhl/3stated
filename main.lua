@@ -29,14 +29,7 @@ local DEBUG_MODE          = true                                    -- true: sho
 --- Translation
 local currentLocale       = system.getLocale()                            -- current system language for check if language has changed
 local STR                 = assert(loadfile("i18n/i18n.lua"))().translate -- load i18n and get translate function
-local WidgetNameASCII     = {                                             -- Widget name in different languages (ASCII only)
-    ["cs"] = "3-stavovy-displej",                                         -- 3-stavový-displej
-    ["de"] = "3-Zustand-Anzeige",                                         --
-    ["en"] = "3-State-Display",                                           --
-    ["es"] = "3-Estados-Indicador",                                       --
-    ["fr"] = "3-Etats-Affichage",                                         -- "3-États-Affichage"
-    ["it"] = "3-Stati-Display",                                           --
-}
+local widgetNameMap       = assert(loadfile("i18n/name.lua"))()           -- load widget name map
 
 --- List indexes (used for listText, listBGColor and listTxColor)
 local TITLE_INDEX         = 1
@@ -103,7 +96,7 @@ end
 -- Handler to get the widget name in the current system language.
 local function name() -- Widget name (ASCII) - only for name() Handler
     local lang = system.getLocale and system.getLocale() or "en"
-    return WidgetNameASCII[lang] or WidgetNameASCII["en"]
+    return widgetNameMap[lang] or widgetNameMap["en"]
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -361,7 +354,7 @@ local function paint(widget)
     --------------------------------------------------------------------------------------------------------------------
     --- Paint main
     debugInfo("paint")
-    updateLanguage()        -- check if system language has changed
+    updateLanguage()     -- check if system language has changed
 
     if not widget.h then -- calculate widget
         debugInfo("paint", "calcWidget")
@@ -386,7 +379,6 @@ local function configure(widget)
     --------------------------------------------------------------------------------------------------------------------
     --- Add configuration for title or state (text, background color and text color).
     local function addConfigBlock(index)
-  
         line = form.addLine(STR(CONF_TITLES[index]) .. " " .. STR("Text"))
         form.addTextField(line, nil, function() return widget.listText[index] end,
             function(value) widget.listText[index] = value end)
@@ -466,6 +458,7 @@ local function configure(widget)
         function(value) widget.debugMode = value end)
 
     -- Widget Info
+    -- addConfigStaticText(STR("Widget"), name())
     addConfigStaticText(STR("Widget"), STR("WidgetName"))
     addConfigStaticText(STR("Version"), WIDGET_VERSION)
     addConfigStaticText(STR("Author"), WIDGET_AUTOR)
