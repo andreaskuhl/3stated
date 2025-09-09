@@ -6,7 +6,7 @@
 
 <h1 name="top"> 3STATED | 3-State Indicator </h1>
 Widget for textual and color display of 3 states of a source (switch, variable, ...).  
-Version 1.0.0
+Version 1.1.0
 
 
 |                  |                                                     |
@@ -93,6 +93,7 @@ Widget configuration:
 
 | Version |    Date    | Modification                                                                                                                                                                                   |
 | ------: | :--------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|   1.1.0 | #.09.09.20 | New feature: Multiline state text.                                                                                                                                                             |
 |   1.0.2 | 02.09.2025 | Implementation of user data version number for identification and conversion of older user data from previous widget versions. Internal extension for future use - no update needed for users. |
 |   1.0.1 | 31.08.2025 | Readme update: Adjusted installation description. No standalone release package.                                                                                                               |
 |   1.0.0 | 31.08.2025 | First official release.                                                                                                                                                                        |

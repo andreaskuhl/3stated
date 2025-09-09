@@ -20,7 +20,7 @@
 ------------------------------------------------------------------------------------------------------------------------
 
 --- Application control and information
-local WIDGET_VERSION      = "1.0.3"                                 -- version information
+local WIDGET_VERSION      = "1.1.0"                                 -- version information
 local WIDGET_AUTOR        = "Andreas Kuhl (github.com/andreaskuhl)" -- author information
 local WIDGET_KEY          = "3STATED"                               -- unique widget key (max. 7 characters)
 local DEBUG_PREFIX        = "Widget " .. WIDGET_KEY .. " - "        -- prefix for debug messages
@@ -340,7 +340,7 @@ local function paint(widget)
         local n = #lines
         for i, line in ipairs(lines) do
             local offset = -n / 2 - 0.5 + i
-            debugInfo("paintStateText",string.format("Offset: %.2f | Zeile: %s", offset, line))
+            debugInfo("paintStateText", string.format("Offset: %.2f | Zeile: %s", offset, line))
             drawTextCentered(line, FONT_SIZES[widget.fontSizeIndex], LINE_CENTERED, offset)
         end
     end

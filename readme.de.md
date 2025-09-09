@@ -7,7 +7,7 @@
 
 <h1 name="top"> 3STATED | 3-Zustand-Anzeige </h1>
 Widget für die textuelle und farbliche Anzeige von 3 Zuständen einer Quelle (Schalter, Variablen, ...).  
-Version 1.0.0
+Version 1.1.0
 
 |                      |                                                     |
 | -------------------- | --------------------------------------------------- |
@@ -92,10 +92,11 @@ Widget-Konfiguration:
 
 # Release Informationen
 
-| Version |   Datum    | Veränderung                                                                                                                                                                                   |
-| ------: | :--------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Version |   Datum    | Veränderung                                                                                                                                                                                                                          |
+| ------: | :--------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|   1.1.0 | 09.09.2025 | Neue Funktion: Mehrzeiliger Zustandstext                                                                                                                                                                                             |
 |   1.0.2 | 02.09.2025 | Implementierung der Benutzerdaten-Versionsnummer zur Identifizierung und Konvertierung älterer Benutzerdaten älterer Widget-Versions-Daten. Interne Erweiterung für zukünftige Verwendung - kein Update aus Benutzersicht notwendig. |
-|   1.0.1 | 31.08.2025 | Update Readme: Angepasste Installations-Beschreibung. Kein eigenständiges Release-Paket.                                                                                                                                     |
-|   1.0.0 | 31.08.2025 | Erstes offizielles Release.                                                                                                                                                               |
+|   1.0.1 | 31.08.2025 | Aktualisierung Readme: Angepasste Installations-Beschreibung. Kein eigenständiges Release-Paket.                                                                                                                                     |
+|   1.0.0 | 31.08.2025 | Erstes offizielles Release.                                                                                                                                                                                                          |
 
 [↑ Zurück nach oben](#top)
