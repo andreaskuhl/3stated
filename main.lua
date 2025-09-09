@@ -89,6 +89,24 @@ local function existText(text)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
+---  Split text into lines based on a specified separator.
+local function splitLines(text, separator)
+    local lines = {}
+
+    if not existText(text) then return lines end
+
+    -- Add separator at the end to capture the last line
+    text = text .. separator
+
+    -- Split text into lines
+    for line in string.gmatch(text, "(.-)" .. separator) do
+        table.insert(lines, line)
+    end
+
+    return lines
+end
+
+------------------------------------------------------------------------------------------------------------------------
 --- Widget handler
 ------------------------------------------------------------------------------------------------------------------------
 
@@ -314,6 +332,20 @@ local function paint(widget)
     end
 
     --------------------------------------------------------------------------------------------------------------------
+    ---  paint multiline state text
+    local function paintStateText()
+        debugInfo("paintStateText")
+
+        local lines = splitLines(widget.listText[widget.state], "_n_")
+        local n = #lines
+        for i, line in ipairs(lines) do
+            local offset = -n / 2 - 0.5 + i
+            debugInfo("paintStateText",string.format("Offset: %.2f | Zeile: %s", offset, line))
+            drawTextCentered(line, FONT_SIZES[widget.fontSizeIndex], LINE_CENTERED, offset)
+        end
+    end
+
+    --------------------------------------------------------------------------------------------------------------------
     --- Paint background, set text color and paint state text (or debug information in debug mode).
     local function paintState()
         debugInfo("paintState")
@@ -332,7 +364,7 @@ local function paint(widget)
         if widget.debugMode then
             paintDebugInfo()
         else
-            drawTextCentered(widget.listText[widget.state], FONT_SIZES[widget.fontSizeIndex], LINE_CENTERED)
+            paintStateText()
         end
     end
 

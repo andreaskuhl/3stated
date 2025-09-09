@@ -49,6 +49,7 @@ If you like it you can support it by making a donation!
       Note: Different source types have different value ranges (switch -100 to 100,
                  rotary knob -1024 to 1024, ...). Therefore, different threshold values make sense.
   - **Show title and source** (each switchable), in small above the state text. The title area can optionally be displayed in the state colors or with separately defined colors for background and text.
+  - **Multiline state text**. Simply insert "n" (for "new line") as a line separator within the respective state text. Any number of lines is possible and only limited by the widget and font size.
   - **Efficient widget update** only on actual state change, not on every change of the state source.
   - **Analysis mode** (switchable): Output of source, value, and state text. Useful for testing and determining suitable threshold values.
   - **Localization**: German (de), English (en), French (fr), Spanish (es), Italian (it), and Czech (cz)
@@ -56,7 +57,6 @@ If you like it you can support it by making a donation!
 # Ideas for Further Features
   - **Template mechanism** to easily load different widget configurations into a model.  
   Useful since the configuration has become quite extensive and the same state display is needed in many models - e.g. tow release open/closed, motor emergency stop active/inactive, flap position thermal/normal/speed, ...
-  - **Two-line state text** for longer texts -> Is this needed?
   - **5 states**, instead of 3 also 5 states - e.g. for analog controllers -> Is this needed?
   - Further localization -> If needed, please report ... or even better, provide a translation.
   
