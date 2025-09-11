@@ -1,18 +1,19 @@
 ------------------------------------------------------------------------------------------------------------------------
----                 3STATED | 3-Zustand-Anzeige (3-State-Display)
+---                 3STATED | 3-State-Display
 ---
----  Widget für die textuelle und farbliche Anzeige von 3 Zuständen einer Quelle (Schalter, Variablen, ...).
----  Dokumentation: file://./readme.md
+---  Widget for textual and color-based display of 3 states from a source (switches, variables, ...).
+---  Documentation: file://./readme.md
 ---
----  Entwicklungsumgebung: Ethos X20S-Simulator Version 1.6.3
----  Testumgebung:         FrSky Tandem X20 | Ethos 1.6.3 EU | Bootloader 1.4.15
+---  Development Environment: Ethos X20S Simulator Version 1.6.3
+---  Test Environment:        FrSky Tandem X20 | Ethos 1.6.3 EU | Bootloader 1.4.15
 ---
----  Autor: Andreas Kuhl (https://github.com/andreaskuhl)
----  Lizenz: GPL 3.0
+---  Author: Andreas Kuhl (https://github.com/andreaskuhl)
+---  License: GPL 3.0
 ---
----  Vielen Dank für die folgenden hilfreichen Beispiele:
----    - Schalteranzeige (V1.4 vom 28.12.2024), JecoBerlin
----    - Ethos-Status-widget / Ethos-TriStatus-widget (V2.1 vom 30.07.2025), Lothar Thole (https://github.com/lthole)
+---  Many thanks for the following helpful examples:
+---    - Switch Display (V1.4 from 28.12.2024), JecoBerlin
+---    - Ethos Status Widget / Ethos TriStatus Widget (V2.1 from 30.07.2025), Lothar Thole (https://github.com/lthole)
+---
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
