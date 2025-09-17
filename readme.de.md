@@ -50,7 +50,7 @@ Wenn es Ihnen gefällt, können Sie es mit einer Spende unterstützen!
                  Drehregler -1024 bis 1024, ...). Daraus ergeben entsprechend unterschiedlich sinnvolle
                  Schwellenwerte.
   - **Titel und Quelle anzeigen** (jeweils schaltbar), in klein oberhalb des Zustandstextes. Der Titelbereich kann dabei wahlweise in den Zustandsfarben angezeigt werden oder mit gesondert definierten Farben für Hintergrund und Text.
-  - **Mehrzeiliger Zustandstext**. Einfach im jeweiligen Zustandstext "_n_" (für "new line") als Zeilentrenner einfügen. Beliebig Zeilen sind möglich und nur durch Widget- und Schriftgröße begrenzt.  
+  - **Mehrzeiliger Zustandstext**. Einfach im jeweiligen Zustandstext "\_n\_" (für "new line") als Zeilentrenner einfügen. Beliebig Zeilen sind möglich und nur durch Widget- und Schriftgröße begrenzt.  
   - **Effiziente Widget-Aktualisierung** nur bei wirklichem Zustandswechsel, also nicht bei jeder Änderung der Zustands-Quelle.
   - **Analyse-Modus** (schaltbar): Ausgabe von Quelle, Wert und Zustandstext. U.a. zum Testen und Ermitteln passender Schwellwerte.
   - **Lokalisierung**: Deutsch (de), Englisch (en), Französisch (fr), Spanisch (es), Italienisch (it) und Tschechisch (cz)
