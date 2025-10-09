@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------------------------------------------------
 ---                 3STATED | 3-State-Display
 ---
----  Widget for textual and color-based display of 3 states from a source (switches, variables, ...).
+---  FrSky Ethos Widget for textual and color-based display of 3 states from a source (switches, variables, ...).
 ---  Documentation: file://./readme.md
 ---
 ---  Development Environment: Ethos X20S Simulator Version 1.6.3
