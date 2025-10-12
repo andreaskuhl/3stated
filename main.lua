@@ -497,21 +497,21 @@ local function configure(widget)
 
 
     -- STATE_DOWN threshold
-    line = form.addLine(STR "Threshold" .. " " .. STR(CONF_TITLES[STATE_DOWN]))
+    line = form.addLine(STR ("Threshold") .. " " .. STR(CONF_TITLES[STATE_DOWN]))
     f = form.addNumberField(line, nil, THRESHOLD_MIN * 10, THRESHOLD_MAX * 10,
         function() return widget.thresholdDown * 10 end,
         function(value) widget.thresholdDown = value / 10 end);
     f:decimals(1)
 
     -- STATE_UP threshold
-    line = form.addLine(STR "Threshold" .. " " .. STR(CONF_TITLES[STATE_UP]))
+    line = form.addLine(STR ("Threshold") .. " " .. STR(CONF_TITLES[STATE_UP]))
     f = form.addNumberField(line, nil, THRESHOLD_MIN * 10, THRESHOLD_MAX * 10,
         function() return widget.thresholdUp * 10 end,
         function(value) widget.thresholdUp = value / 10 end);
     f:decimals(1)
 
     -- Font size
-    line = form.addLine(STR "FontSize")
+    line = form.addLine(STR("FontSize"))
     form.addChoiceField(line, nil, FONT_SIZE_SELECTION, function() return widget.fontSizeIndex end,
         function(value) widget.fontSizeIndex = value end)
 
