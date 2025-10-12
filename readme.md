@@ -49,7 +49,7 @@ If you like it you can support it by making a donation!
       Note: Different source types have different value ranges (switch -100 to 100,
                  rotary knob -1024 to 1024, ...). Therefore, different threshold values make sense.
   - **Show title and source** (each switchable), in small above the state text. The title area can optionally be displayed in the state colors or with separately defined colors for background and text.
-  - **Multiline state text**. Simply insert "\_n\_" (for "new line") as a line separator within the respective state text. Any number of lines is possible and only limited by the widget and font size.
+  - **Multiline state text**. Simply insert "\_b" (for "line break") as a line separator within the respective state text. Any number of lines is possible and only limited by the widget and font size.
   - **Efficient widget update** only on actual state change, not on every change of the state source.
   - **Analysis mode** (switchable): Output of source, value, and state text. Useful for testing and determining suitable threshold values.
   - **Localization**: German (de), English (en), French (fr), Spanish (es), Italian (it), and Czech (cz)
