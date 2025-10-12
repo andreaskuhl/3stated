@@ -90,17 +90,53 @@ local function existText(text)
 end
 
 ------------------------------------------------------------------------------------------------------------------------
----  Split text into lines based on a specified separator.
-local function splitLines(text, separator)
-    local lines = {}
+--- Format state text by replacing placeholders in a given string.
+--- Supported placeholders:
+---   _v    -> widget.value as number (without decimals)
+---   _<N>v -> widget.value as float with N decimals (e.g., _3v for three decimals)
+---   _t    -> widget.text
+---   __    -> literal "_"
+local function formatStateText(stateText, widget)
+    local UNDERSCORE_PLACEHOLDER = "\1"
+    local val = (widget and widget.value) or 0
+    local txt = (widget and widget.text) or ""
+    local s = stateText or ""
+    debugInfo("formatStateText", "Input: " .. s .. ", value: " .. val .. ", text: " .. txt)
+
+    if s == "" then return "" end
+
+    s = s:gsub("__", UNDERSCORE_PLACEHOLDER) -- temporary placeholder for literal '__' to avoid accidental replacement
+
+    s = s:gsub("_(%d+)v",                    -- value: replace floating formats like _0v, _1v, _2v, _3v etc. capture digits before v
+        function(precision)
+            local n = tonumber(precision) or 0
+            local formatStr = string.format("%%.%df", n)
+            return string.format(formatStr, tonumber(val) or 0)
+        end)
+    s = s:gsub("_v", string.format("%.0f", tonumber(val) or 0)) -- value: replace default float _v as value number (float without decimals)
+    s = s:gsub("_t", function() return tostring(txt) end)       -- text: replace _t as value text (use function replacement so '%' in txt is not interpreted)
+    s = s:gsub(UNDERSCORE_PLACEHOLDER, "_")                     -- restore literal underscore
+
+    return s
+end
+
+------------------------------------------------------------------------------------------------------------------------
+---  Split text into lines based on separator "_b" <break> and
+---
+local function splitLinesAndFormat(text, widget)
+    local UNDERSCORE_PLACEHOLDER = "\1" -- temporary placeholder for literal '__'
+    local LINE_SEPARATOR = "_b"         -- line separator <break>
+    local lines = {}                    -- table to hold lines as result
 
     if not existText(text) then return lines end
 
-    -- Add separator at the end to capture the last line
-    text = text .. separator
+    text = text:gsub("__", UNDERSCORE_PLACEHOLDER) -- temporary placeholder for literal '__' to avoid accidental replacement
+    text = text .. LINE_SEPARATOR                  -- Add separator at the end to capture the last line
 
     -- Split text into lines
-    for line in string.gmatch(text, "(.-)" .. separator) do
+    for line in string.gmatch(text, "(.-)" .. LINE_SEPARATOR) do
+        line = line:gsub(UNDERSCORE_PLACEHOLDER, "__") -- restore literal underscore
+        line = formatStateText(line, widget)
         table.insert(lines, line)
     end
 
@@ -136,6 +172,7 @@ local function create()
     --- Create widget data structure with default values.
     return {
         value = {},                                                                        -- source value
+        text = "",                                                                         -- source text
         state = STATE_DOWN,                                                                -- actual state (1-3) meant(down/middle/up)
         sourceShow = true,                                                                 -- source switch
         titleShow = true,                                                                  -- title switch
@@ -154,8 +191,8 @@ end
 --- Handler to wake up the widget (check for source value changes and initiating redrawing if necessary).
 local function wakeup(widget)
     --------------------------------------------------------------------------------------------------------------------
-    --- Check if the state has changed (returns true if changed).
-    local function isStateChanged(widget)
+    --- Check if the value  has changed (returns true if changed).
+    local function isWidgetChanged()
         local isChanged = false
 
         if not existWidgetSource(widget) then return false end
@@ -164,29 +201,23 @@ local function wakeup(widget)
         local actValue = widget.source:value()
         if widget.value ~= actValue then
             widget.value = actValue
-            -- in debug mode always redraw on value change
-            if widget.debugMode then isChanged = true end
-        end
-
-        -- determine new state by thresholds
-        if (widget.value < widget.thresholdDown) then -- Down
-            if (widget.state ~= STATE_DOWN) then
+            widget.text = widget.source:stringValue()
+            -- determine new state by thresholds
+            if (widget.value < widget.thresholdDown) then   -- Down
                 widget.state = STATE_DOWN
-                isChanged = true
-            end
-        elseif (widget.value < widget.thresholdUp) then -- Middle
-            if (widget.state ~= STATE_MIDDLE) then
+            elseif (widget.value < widget.thresholdUp) then -- Middle
                 widget.state = STATE_MIDDLE
-                isChanged = true
+            elseif (widget.state ~= STATE_UP) then          -- Up
+                widget.state = STATE_UP
             end
-        elseif (widget.state ~= STATE_UP) then -- Up
-            widget.state = STATE_UP
             isChanged = true
         end
 
         if isChanged then
-            debugInfo("isStateChanged",
-                "state is changed to " .. widget.state .. " = " .. STR(CONF_TITLES[widget.state]))
+            debugInfo("isWidgetChanged",
+                "widget value is changed to " ..
+                widget.state ..
+                " = " .. STR(CONF_TITLES[widget.state]) .. ", value = " .. widget.value .. ", text = " .. widget.text)
         end
 
         return isChanged
@@ -194,7 +225,7 @@ local function wakeup(widget)
 
     --------------------------------------------------------------------------------------------------------------------
     -- Wakeup main
-    if isStateChanged(widget) then
+    if isWidgetChanged() then
         lcd.invalidate()
         debugInfo("wakeup", "LCD invalidate")
     end
@@ -306,7 +337,8 @@ local function paint(widget)
         local line = {}
 
         --- line 1: source name and value
-        line[1] = STR("Source") .. " " .. widget.source:name() .. ": " .. widget.value
+        -- line[1] = STR("Source") .. " " .. widget.source:name() .. ": " .. widget.value
+        line[1] = widget.source:name() .. ": " .. widget.value .. " (" .. widget.text .. ")"
 
         -- line 2: state and thresholds
         if widget.state == STATE_DOWN then
@@ -332,12 +364,15 @@ local function paint(widget)
         drawTextCentered(line[3], FONT_S, LINE_CENTERED, 1)
     end
 
+
+
     --------------------------------------------------------------------------------------------------------------------
     ---  paint multiline state text
     local function paintStateText()
         debugInfo("paintStateText")
 
-        local lines = splitLines(widget.listText[widget.state], "_n_")
+        local stateText = formatStateText(widget.listText[widget.state], widget)
+        local lines = splitLinesAndFormat(stateText, widget)
         local n = #lines
         for i, line in ipairs(lines) do
             local offset = -n / 2 - 0.5 + i
