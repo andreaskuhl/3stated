@@ -9,6 +9,10 @@
     "widget",
     "FONT_XL",
     "TEXT_CENTERED",
+    "TEXT_LEFT",
+    "TEXT_RIGHT",
+    "CATEGORY_FLIGHT",
+    "FLIGHT_CURRENT_MODE",
     "COLOR_BLACK",
     "COLOR_BLUE",
     "COLOR_CYAN",
@@ -20,8 +24,8 @@
     "COLOR_YELLOW",
     "FONT_XS",
     "FONT_S",
-    "FONT_L",
     "FONT_STD",
+    "FONT_L",
     "FONT_XL",
     "FONT_XL,",
     "FONT_XXL",
@@ -42,6 +46,7 @@
   "TXCOLORTITLE",
   "TXCOLORUP",
   "wakeup",
+  "WDGTMPL",
   "Wölbklappenstellung"
 ],
 "Lua.diagnostics.disable": [

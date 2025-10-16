@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------------------------------------------------
----                 3STATED | 3-State-Display
+---                 3STATED | 3-State-Display - Widget für FrSky Ethos
 ---
 ---  FrSky Ethos Widget for textual and color-based display of 3 states from a source (switches, variables, ...).
 ---  Documentation: file://./readme.md
@@ -22,15 +22,21 @@
 
 --- Application control and information
 local WIDGET_VERSION      = "1.1.0"                                 -- version information
-local WIDGET_AUTOR        = "Andreas Kuhl (github.com/andreaskuhl)" -- author information
 local WIDGET_KEY          = "3STATED"                               -- unique widget key (max. 7 characters)
-local DEBUG_PREFIX        = "Widget " .. WIDGET_KEY .. " - "        -- prefix for debug messages
+local WIDGET_AUTOR        = "Andreas Kuhl (github.com/andreaskuhl)" -- author information
 local DEBUG_MODE          = true                                    -- true: show debug information, false: release mode
+local widgetCounter       = 0                                       -- debug: counter for widget instances (0 = no instance)
+
+--- Libraries
+local wHelper             = {} -- widget helper library
+local wPaint              = {} -- widget paint library
+local wConfig             = {} -- widget config library
+local wStorage            = {} -- widget storage library
 
 --- Translation
-local currentLocale       = system.getLocale()                            -- current system language for check if language has changed
 local STR                 = assert(loadfile("i18n/i18n.lua"))().translate -- load i18n and get translate function
-local widgetNameMap       = assert(loadfile("i18n/name.lua"))()           -- load widget name map
+local WIDGET_NAME_MAP     = assert(loadfile("i18n/w_name.lua"))()         -- load widget name map
+local currentLocale       = system.getLocale()                            -- current system language
 
 --- List indexes (used for listText, listBGColor and listTxColor)
 local TITLE_INDEX         = 1
@@ -43,104 +49,38 @@ local THRESHOLD_MIN       = -1024 -- Minimum threshold for configuration form.
 local THRESHOLD_MAX       = 1024  -- Minimum threshold for configuration form.
 
 --- User interface
-local CONF_TITLES         = { "Title", "StateDown", "StateMiddle", "StateUp" }       -- configuration title (1-4)
-local FONT_SIZES          = { FONT_XS, FONT_S, FONT_L, FONT_STD, FONT_XL, FONT_XXL } -- global font IDs (1-6)
-local FONT_SIZE_SELECTION = { { "XS", 1 }, { "S", 2 }, { "M", 3 }, { "L", 4 },
-    { "XL", 5 }, { "XXL", 6 } }                                                      -- font list for config listbox
+local CONF_TITLES         = { "Title", "StateDown", "StateMiddle", "StateUp" }   -- configuration title (1-4)
+local FONT_SIZES          = {
+    FONT_XS, FONT_S, FONT_STD, FONT_L, FONT_XL, FONT_XXL }                       -- global font IDs (1-6)
+local FONT_SIZE_SELECTION = {
+    { "XS", 1 }, { "S", 2 }, { "M", 3 }, { "L", 4 }, { "XL", 5 }, { "XXL", 6 } } -- list for config listbox
 
 ------------------------------------------------------------------------------------------------------------------------
------- Helper functions
+--- Local Helper functions
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
----  Debug output function.
----  If DEBUG_MODE is true, it prints debug information to the console.
----  Format: "<tick> Widget <widget name> - <function name>() - <info text>"
-local function debugInfo(functionName, infotext)
-    if DEBUG_MODE then
-        -- if infotext == nil then infotext = "" else infotext = ": " .. infotext end
-        infotext = (infotext == nil) and "" or (": " .. infotext)
-        print(string.format("%06d ", math.floor(os.clock() * 1000)) ..
-            DEBUG_PREFIX .. functionName .. "()" .. infotext)
-    end
+--- Load and init Libraries.
+local function initLibraries()
+    -- load libraries with dependencies
+    wHelper = dofile("lib/w_helper.lua")({ widgetVersion = WIDGET_VERSION, widgetKey = WIDGET_KEY, debugMode = DEBUG_MODE })
+    wPaint = dofile("lib/w_paint.lua")({ wHelper = wHelper })
+    wConfig = dofile("lib/w_config.lua")({ wHelper = wHelper })
+    wStorage = dofile("lib/w_storage.lua")({ wHelper = wHelper })
+
+    wHelper.Debug:new(0, "initLibraries"):info("libraries loaded")
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Check if the system language has changed and reload i18n if necessary.
-local function updateLanguage()
+local function updateLanguage(widget)
     local localeNow = system.getLocale()
-    if localeNow ~= currentLocale then
-        -- Language has changed, reload i18n
-        debugInfo("updateLanguage", "Language changed from " .. currentLocale .. " to " .. localeNow)
+    if localeNow ~= currentLocale then -- Language has changed, reload i18n
+        wHelper.Debug:new(widget.no, "updateLanguage")
+            :info("Language changed from " .. currentLocale .. " to " .. localeNow)
         STR = assert(loadfile("i18n/i18n.lua"))().translate
         currentLocale = localeNow
     end
-end
-
-------------------------------------------------------------------------------------------------------------------------
---- Check if the widget source exists and is valid.
-local function existWidgetSource(widget)
-    return (widget ~= nil) and (widget.source ~= nil) and (widget.source:name() ~= "---")
-end
-
-------------------------------------------------------------------------------------------------------------------------
---- Check if the text exists and is not empty.
-local function existText(text)
-    return (text ~= nil) and (text ~= "")
-end
-
-------------------------------------------------------------------------------------------------------------------------
---- Format state text by replacing placeholders in a given string.
---- Supported placeholders:
----   _v    -> widget.value as number (without decimals)
----   _<N>v -> widget.value as float with N decimals (e.g., _3v for three decimals)
----   _t    -> widget.text
----   __    -> literal "_"
-local function formatStateText(stateText, widget)
-    local UNDERSCORE_PLACEHOLDER = "\1"
-    local val = (widget and widget.value) or 0
-    local txt = (widget and widget.text) or ""
-    local s = stateText or ""
-    debugInfo("formatStateText", "Input: " .. s .. ", value: " .. val .. ", text: " .. txt)
-
-    if s == "" then return "" end
-
-    s = s:gsub("__", UNDERSCORE_PLACEHOLDER) -- temporary placeholder for literal '__' to avoid accidental replacement
-
-    s = s:gsub("_(%d+)v",                    -- value: replace floating formats like _0v, _1v, _2v, _3v etc. capture digits before v
-        function(precision)
-            local n = tonumber(precision) or 0
-            local formatStr = string.format("%%.%df", n)
-            return string.format(formatStr, tonumber(val) or 0)
-        end)
-    s = s:gsub("_v", string.format("%.0f", tonumber(val) or 0)) -- value: replace default float _v as value number (float without decimals)
-    s = s:gsub("_t", function() return tostring(txt) end)       -- text: replace _t as value text (use function replacement so '%' in txt is not interpreted)
-    s = s:gsub(UNDERSCORE_PLACEHOLDER, "_")                     -- restore literal underscore
-
-    return s
-end
-
-------------------------------------------------------------------------------------------------------------------------
----  Split text into lines based on separator "_b" <break> and
----
-local function splitLinesAndFormat(text, widget)
-    local UNDERSCORE_PLACEHOLDER = "\1" -- temporary placeholder for literal '__'
-    local LINE_SEPARATOR = "_b"         -- line separator <break>
-    local lines = {}                    -- table to hold lines as result
-
-    if not existText(text) then return lines end
-
-    text = text:gsub("__", UNDERSCORE_PLACEHOLDER) -- temporary placeholder for literal '__' to avoid accidental replacement
-    text = text .. LINE_SEPARATOR                  -- Add separator at the end to capture the last line
-
-    -- Split text into lines
-    for line in string.gmatch(text, "(.-)" .. LINE_SEPARATOR) do
-        line = line:gsub(UNDERSCORE_PLACEHOLDER, "__") -- restore literal underscore
-        line = formatStateText(line, widget)
-        table.insert(lines, line)
-    end
-
-    return lines
 end
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -150,40 +90,61 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- Handler to get the widget name in the current system language.
 local function name() -- Widget name (ASCII) - only for name() Handler
+    wHelper.Debug:new(0, "name"):info()
     local lang = system.getLocale and system.getLocale() or "en"
-    return widgetNameMap[lang] or widgetNameMap["en"]
+    return WIDGET_NAME_MAP[lang] or WIDGET_NAME_MAP["en"]
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 --- Handler to create a new widget instance with default values.
 local function create()
-    debugInfo("create")
+    widgetCounter                 = widgetCounter + 1
+    local debug                   = wHelper.Debug:new(widgetCounter, "create"):info()
 
-    -- Defaults
-    local BG_COLOR_TITLE = lcd.RGB(40, 40, 40)    -- title background  -> dark gray
-    local TX_COLOR_TITLE = lcd.RGB(176, 176, 176) -- title text        -> light gray
-    local BG_COLOR_DOWN  = lcd.RGB(0, 128, 0)     -- down background   -> green
-    local TX_COLOR_DOWN  = COLOR_WHITE            -- down text         -> white
-    local BG_COLOR_MID   = lcd.RGB(192, 128, 0)   -- middle background -> orange
-    local TX_COLOR_MID   = COLOR_WHITE            -- middle text       -> white
-    local BG_COLOR_UP    = lcd.RGB(192, 0, 0)     -- up background     -> red
-    local TX_COLOR_UP    = COLOR_WHITE            -- up text           -> white
+    --- widget defaults
+    local FONT_SIZE_INDEX_DEFAULT = 5                      -- font size index default - see fontSizes (1=XS - 6=XXL)
+    local BG_COLOR_TITLE          = lcd.RGB(40, 40, 40)    -- title background  -> dark gray
+    local TX_COLOR_TITLE          = lcd.RGB(176, 176, 176) -- title text        -> light gray
+    local BG_COLOR_DOWN           = lcd.RGB(0, 128, 0)     -- down background   -> green
+    local TX_COLOR_DOWN           = COLOR_WHITE            -- down text         -> white
+    local BG_COLOR_MID            = lcd.RGB(192, 128, 0)   -- middle background -> orange
+    local TX_COLOR_MID            = COLOR_WHITE            -- middle text       -> white
+    local BG_COLOR_UP             = lcd.RGB(192, 0, 0)     -- up background     -> red
+    local TX_COLOR_UP             = COLOR_WHITE            -- up text           -> white
 
     --- Create widget data structure with default values.
     return {
-        value = {},                                                                        -- source value
-        text = "",                                                                         -- source text
-        state = STATE_DOWN,                                                                -- actual state (1-3) meant(down/middle/up)
-        sourceShow = true,                                                                 -- source switch
-        titleShow = true,                                                                  -- title switch
-        titleColorUse = true,                                                              -- title color switch
-        thresholdDown = -50,                                                               -- threshold for state down
-        thresholdUp = 50,                                                                  -- threshold for state up
-        fontSizeIndex = 6,                                                                 -- index of font size - see fontSizes (1=XS - 6=XXL)
-        listText = { STR("Title"), STR("StateDown"), STR("StateMiddle"), STR("StateUp") }, -- text list: title (1) and state (2-4)
-        listBGColor = { BG_COLOR_TITLE, BG_COLOR_DOWN, BG_COLOR_MID, BG_COLOR_UP },        -- background color list: title (1) and state (2-4)
-        listTxColor = { TX_COLOR_TITLE, TX_COLOR_DOWN, TX_COLOR_MID, TX_COLOR_UP },        -- text color list: title (1) and state (2-4)
-        debugMode = false,                                                                 -- true: shows internal values in the widget
+        -- widget variables
+        no              = widgetCounter,                                                          -- widget instance number
+        width           = nil,                                                                    -- widget height
+        height          = nil,                                                                    -- widget width
+
+        source          = nil,                                                                    -- source
+        sourceLastValue = 0,                                                                      -- last source value
+        sourceShow      = true,                                                                   -- source switch
+        titleShow       = true,                                                                   -- title switch
+        titleColorUse   = true,                                                                   -- title color switch
+        thresholdDown   = -50,                                                                    -- threshold for state down
+        thresholdUp     = 50,                                                                     -- threshold for state up
+        fontSizeIndex   = FONT_SIZE_INDEX_DEFAULT,                                                -- index of font size
+        listText        = { STR("Title"), STR("StateDown"), STR("StateMiddle"), STR("StateUp") }, -- text list: title (1) and state (2-4)
+        listBGColor     = { BG_COLOR_TITLE, BG_COLOR_DOWN, BG_COLOR_MID, BG_COLOR_UP },           -- background color list: title (1) and state (2-4)
+        listTxColor     = { TX_COLOR_TITLE, TX_COLOR_DOWN, TX_COLOR_MID, TX_COLOR_UP },           -- text color list: title (1) and state (2-4)
+        debugMode       = false,                                                                  -- true: shows internal values in the widget
+        -- get source value function
+        getSourceValue  = function(self) return (wHelper.existSource(self.source) and self.source:value()) or 0 end,
+        -- get source text function
+        getSourceText   = function(self) return (wHelper.existSource(self.source) and self.source:stringValue()) or "" end,
+        -- get state function -> 1-3 meant(down/middle/up)
+        getState        = function(self)
+            if self:getSourceValue() < self.thresholdDown then
+                return STATE_DOWN
+            elseif self:getSourceValue() < self.thresholdUp then
+                return STATE_MIDDLE
+            else
+                return STATE_UP
+            end
+        end
     }
 end
 
@@ -193,31 +154,19 @@ local function wakeup(widget)
     --------------------------------------------------------------------------------------------------------------------
     --- Check if the value  has changed (returns true if changed).
     local function isWidgetChanged()
+        local debug = wHelper.Debug:new(widget.no, "isWidgetChanged")
         local isChanged = false
 
-        if not existWidgetSource(widget) then return false end
+        if not wHelper.existSource(widget.source) then return false end
 
         -- check if source value has changed
         local actValue = widget.source:value()
-        if widget.value ~= actValue then
-            widget.value = actValue
-            widget.text = widget.source:stringValue()
-            -- determine new state by thresholds
-            if (widget.value < widget.thresholdDown) then   -- Down
-                widget.state = STATE_DOWN
-            elseif (widget.value < widget.thresholdUp) then -- Middle
-                widget.state = STATE_MIDDLE
-            elseif (widget.state ~= STATE_UP) then          -- Up
-                widget.state = STATE_UP
-            end
+        if widget.sourceLastValue ~= actValue then
             isChanged = true
-        end
-
-        if isChanged then
-            debugInfo("isWidgetChanged",
-                "widget value is changed to " ..
-                widget.state ..
-                " = " .. STR(CONF_TITLES[widget.state]) .. ", value = " .. widget.value .. ", text = " .. widget.text)
+            widget.sourceLastValue = actValue
+            debug:info("widget value is changed to " ..
+                "value = " .. actValue .. ", text = " .. widget:getSourceText() ..
+                ", " .. widget:getState() .. " = " .. STR(CONF_TITLES[widget:getState()]))
         end
 
         return isChanged
@@ -225,176 +174,153 @@ local function wakeup(widget)
 
     --------------------------------------------------------------------------------------------------------------------
     -- Wakeup main
+    -- local debug = wHelper.Debug:new(widget.no, "wakeup")
+
     if isWidgetChanged() then
         lcd.invalidate()
-        debugInfo("wakeup", "LCD invalidate")
+        -- debug:info("LCD invalidate")
     end
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 --- Handler to paint (draw) the widget.
 local function paint(widget)
-    local titleHeight   = 0 -- height of title box
 
-    -- Vertical alignment constants for function drawTextCentered()
-    local FREE_ABOVE    = 3 -- pixel free space at above title and/or text
-    local FREE_BELOW    = 3 -- pixel free space below title and/or text
-    local LINE_TOP      = 1 -- align top
-    local LINE_CENTERED = 2 -- align middle (vertical centered)
-    local LINE_BOTTOM   = 3 -- align bottom
-
-    ---------------------------------------------------------------------------------------------------------------------
-    --- Draw text centered in the widget.
-    --- Parameters:
-    ---   text         : text to draw (string)
-    ---   fontSize     : font size (FONT_XS, FONT_S, FONT_L, FONT_STD, FONT_XL, FONT_XXL) - default: FONT_STD
-    ---   verticalAlign: vertical alignment (LINE_ABOVE, LINE_CENTERED, LINE_BELOW) - default: LINE_CENTERED
-    ---   shiftLine    : shift line (example: 0 = no shift, -1 = one line up, 0.5 = half line down) - default: 0
     --------------------------------------------------------------------------------------------------------------------
-    local function drawTextCentered(text, fontSize, verticalAlign, shiftLine)
-        local textWidth, textHeight -- text width and height
-        local textPosY              -- text y position
+    --- Format state text by replacing placeholders in a given string.
+    --- Supported placeholders:
+    ---   _v    -> widget:getSourceValue() as number (without decimals)
+    ---   _<N>v -> widget:getSourceValue() as float with N decimals (e.g., _3v for three decimals)
+    ---   _t    -> widget:getSourceText()
+    ---   __    -> literal "_"
+    local function formatText(stateText)
+        -- local debug = wHelper.Debug:new(widget.no, "formatText")
+        local UNDERSCORE_PLACEHOLDER = "\1"
+        local val = (widget and widget:getSourceValue()) or 0
+        local txt = (widget and widget:getSourceText()) or ""
+        local s = stateText or ""
+        -- debug:info("Input: " .. s .. ", value: " .. val .. ", text: " .. txt)
 
-        if not existText(text) then return end
-        if not fontSize then fontSize = FONT_STD end
-        if not verticalAlign then verticalAlign = LINE_CENTERED end
-        if not shiftLine then shiftLine = 0 end
+        if s == "" then return "" end
 
-        lcd.font(fontSize) -- set font size
-        _, textHeight = lcd.getTextSize("")
+        s = s:gsub("__", UNDERSCORE_PLACEHOLDER) -- temporary placeholder for literal '__' to avoid accidental replacement
 
-        if verticalAlign == LINE_TOP then        -- align top
-            textPosY = FREE_ABOVE + titleHeight
-        elseif verticalAlign == LINE_BOTTOM then -- align bottom
-            textPosY = (widget.h - textHeight)   -- not FREE_BELOW, text height include enough descender (Unterlänge)
-        else                                     -- align centered (default)
-            textPosY = FREE_ABOVE + ((widget.h - titleHeight - FREE_ABOVE) / 2 - textHeight / 2) + titleHeight
-        end
+        s = s:gsub("_(%d+)v",                    -- value: replace floating formats like _0v, _1v, _2v, _3v etc. capture digits before v
+            function(precision)
+                local n = tonumber(precision) or 0
+                local formatStr = string.format("%%.%df", n)
+                return string.format(formatStr, tonumber(val) or 0)
+            end)
+        s = s:gsub("_v", string.format("%.0f", tonumber(val) or 0)) -- value: replace default float _v as value number (float without decimals)
+        s = s:gsub("_t", function() return tostring(txt) end)       -- text: replace _t as value text (use function replacement so '%' in txt is not interpreted)
+        s = s:gsub(UNDERSCORE_PLACEHOLDER, "_")                     -- restore literal underscore
 
-        textPosY = textPosY + (shiftLine * textHeight) -- shift line
-
-        lcd.drawText((widget.w / 2), textPosY, text, TEXT_CENTERED)
+        return s
     end
 
     --------------------------------------------------------------------------------------------------------------------
     --- Paint title text.
     local function paintTitle()
+        -- local debug = wHelper.Debug:new(widget.no, "paintTitle"):info()
         local sourceText = ""
         local titleText = ""
-        local local_title_h
 
-        titleHeight = 0
-        if not widget.sourceShow and not widget.titleShow then return end
+        if not widget.sourceShow and not widget.titleShow then return end -- title disabled
 
-        -- calculate title box height
-        lcd.font(FONT_S)
-        _, local_title_h = lcd.getTextSize("")
-        local_title_h = FREE_ABOVE + local_title_h + FREE_BELOW
-
-        if widget.titleColorUse then
-            -- draw title background and set title text color
-            lcd.color(widget.listBGColor[TITLE_INDEX])
-            lcd.drawFilledRectangle(0, 0, widget.w, local_title_h)
-            lcd.color(widget.listTxColor[TITLE_INDEX])
-        else
-            -- set state text color
-            lcd.color(widget.listTxColor[widget.state])
-        end
+        -- set source text
         if widget.sourceShow then
-            -- set source text
-            if existWidgetSource(widget) then
+            if wHelper.existSource(widget.source) then
                 sourceText = widget.source:name()
             else
                 sourceText = "---"
             end
         end
 
-        --- set title text
-        if widget.titleShow and existText(widget.listText[TITLE_INDEX]) then -- set title text
-            titleText = widget.listText[TITLE_INDEX]
+        -- set title text
+        if widget.titleShow and wHelper.existText(widget.listText[TITLE_INDEX]) then
+            titleText = formatText(widget.listText[TITLE_INDEX])
         end
 
-        --- combine source and title text
-        if existText(sourceText) and existText(titleText) then -- both texts existent
+        -- combine source and title text
+        if wHelper.existText(sourceText) and wHelper.existText(titleText) then -- both texts existent
             titleText = sourceText .. ": " .. titleText
-        elseif existText(sourceText) then                      -- only source text existent
+        elseif wHelper.existText(sourceText) then                              -- only source text existent
             titleText = sourceText
         end
 
-        --- draw title text
-        if existText(titleText) then
-            drawTextCentered(titleText, FONT_S, LINE_TOP, 0)
+        if widget.titleColorUse then
+            -- title background and title text color
+            wPaint.title(titleText, widget.listBGColor[TITLE_INDEX], widget.listTxColor[TITLE_INDEX])
+        else
+            -- use state colors
+            wPaint.title(titleText, widget.listBGColor[widget:getState()], widget.listTxColor[widget:getState()])
         end
-
-        titleHeight = local_title_h
     end
+
     --------------------------------------------------------------------------------------------------------------------
     --- Paint debug information (shows internal values of the widget).
     local function paintDebugInfo()
-        debugInfo("paintDebugInfo")
-        assert(existWidgetSource(widget))
+        local debug = wHelper.Debug:new(widget.no, "paintDebugInfo"):info()
+        assert(wHelper.existSource(widget.source))
 
         local line = {}
 
         --- line 1: source name and value
-        -- line[1] = STR("Source") .. " " .. widget.source:name() .. ": " .. widget.value
-        line[1] = widget.source:name() .. ": " .. widget.value .. " (" .. widget.text .. ")"
+        line[1] = widget.source:name() .. ": " .. widget:getSourceValue() .. " (" .. widget:getSourceText() .. ")"
 
         -- line 2: state and thresholds
-        if widget.state == STATE_DOWN then
+        if widget:getState() == STATE_DOWN then
             line[2] = "< " .. widget.thresholdDown
-        elseif widget.state == STATE_MIDDLE then
+        elseif widget:getState() == STATE_MIDDLE then
             line[2] = ">= " .. widget.thresholdDown .. " & < " .. widget.thresholdUp
-        elseif widget.state == STATE_UP then
+        elseif widget:getState() == STATE_UP then
             line[2] = ">= " .. widget.thresholdUp
         end
 
         -- line 3: state text
         if line[2] then
-            line[2] = line[2] .. " -> " .. STR(CONF_TITLES[widget.state])
-            line[3] = "\"" .. widget.listText[widget.state] .. "\""
+            line[2] = line[2] .. " -> " .. STR(CONF_TITLES[widget:getState()])
+            line[3] = "\"" .. formatText(widget.listText[widget:getState()]) .. "\""
         else
             line[2] = "Status: " .. STR("StateUnknown")
             line[3] = ""
         end
 
         -- draw debug lines
-        drawTextCentered(line[1], FONT_S, LINE_CENTERED, -1)
-        drawTextCentered(line[2], FONT_S, LINE_CENTERED, 0)
-        drawTextCentered(line[3], FONT_S, LINE_CENTERED, 1)
+        wPaint.text(line[1], FONT_S, TEXT_CENTERED, wPaint.LINE_CENTERED, -1)
+        wPaint.text(line[2], FONT_S, TEXT_CENTERED, wPaint.LINE_CENTERED, 0)
+        wPaint.text(line[3], FONT_S, TEXT_CENTERED, wPaint.LINE_CENTERED, 1)
     end
-
-
 
     --------------------------------------------------------------------------------------------------------------------
     ---  paint multiline state text
     local function paintStateText()
-        debugInfo("paintStateText")
+        -- local debug = wHelper.Debug:new(widget.no, "paintStateText")
 
-        local stateText = formatStateText(widget.listText[widget.state], widget)
-        local lines = splitLinesAndFormat(stateText, widget)
+        local lines = wHelper.splitLines(widget.listText[widget:getState()])
         local n = #lines
         for i, line in ipairs(lines) do
             local offset = -n / 2 - 0.5 + i
-            debugInfo("paintStateText", string.format("Offset: %.2f | Zeile: %s", offset, line))
-            drawTextCentered(line, FONT_SIZES[widget.fontSizeIndex], LINE_CENTERED, offset)
+            line = formatText(line)
+            -- debug:info(string.format("Offset: %.2f | Zeile: %s", offset, line))
+            wPaint.text(line, FONT_SIZES[widget.fontSizeIndex], TEXT_CENTERED, wPaint.LINE_CENTERED, offset)
         end
     end
 
     --------------------------------------------------------------------------------------------------------------------
     --- Paint background, set text color and paint state text (or debug information in debug mode).
     local function paintState()
-        debugInfo("paintState")
-        assert(existWidgetSource(widget))
+        local debug = wHelper.Debug:new(widget.no, "paintState"):info()
+        assert(wHelper.existSource(widget.source))
 
         --- paint background and preset text color
-        lcd.color(widget.listBGColor[widget.state])
-        lcd.drawFilledRectangle(0, 0, widget.w, widget.h)
+        lcd.color(widget.listBGColor[widget:getState()])
+        lcd.drawFilledRectangle(0, 0, widget.width, widget.height)
 
         --- paint title (must be before paint state text or debug information)
         paintTitle()
 
-        lcd.color(widget.listTxColor[widget.state])
+        lcd.color(widget.listTxColor[widget:getState()])
 
         --- paint state text (debug oder standard)
         if widget.debugMode then
@@ -407,31 +333,31 @@ local function paint(widget)
     --------------------------------------------------------------------------------------------------------------------
     --- Paint source missed (no valid source selected) in red on black background.
     local function paintSourceMissed()
-        debugInfo("SourceMissed")
+        local debug = wHelper.Debug:new(widget.no, "paintSourceMissed"):info()
         lcd.color(COLOR_BLACK)
-        lcd.drawFilledRectangle(0, 0, widget.w, widget.h)
+        lcd.drawFilledRectangle(0, 0, widget.width, widget.height)
 
-        --- paint title (must be before paint state text or debug information)
+        --- paint title
         paintTitle()
+
+        debug:warning("source not defined")
 
         -- paint "Source missed" text
         lcd.color(COLOR_RED)
-        drawTextCentered(STR("SourceMissed"), FONT_SIZES[FONT_STD], LINE_CENTERED)
+        wPaint.widgetText(STR("SourceMissed"), FONT_STD)
     end
 
     --------------------------------------------------------------------------------------------------------------------
     --- Paint main
-    debugInfo("paint")
-    updateLanguage()     -- check if system language has changed
+    local debug = wHelper.Debug:new(widget.no, "paint"):info()
 
-    if not widget.h then -- calculate widget
-        debugInfo("paint", "calcWidget")
-        widget.w, widget.h = lcd.getWindowSize()
-    end
+    updateLanguage(widget)
+    widget.width, widget.height = lcd.getWindowSize() -- set the actual widget size (always if the layout has been changed)
+    wPaint.init({ widgetHeight = widget.height, widgetWidth = widget.width })
 
-    if not existWidgetSource(widget) then -- source missed
+    if not wHelper.existSource(widget.source) then -- source missed
         paintSourceMissed()
-    elseif widget.state == STATE_DOWN or widget.state == STATE_MIDDLE or widget.state == STATE_UP then
+    elseif widget:getState() == STATE_DOWN or widget:getState() == STATE_MIDDLE or widget:getState() == STATE_UP then
         paintState()
     else -- invalid state
         assert(false, "Error: Invalid widget state")
@@ -447,64 +373,44 @@ local function configure(widget)
     --------------------------------------------------------------------------------------------------------------------
     --- Add configuration for title or state (text, background color and text color).
     local function addConfigBlock(index)
-        line = form.addLine(STR(CONF_TITLES[index]) .. " " .. STR("Text"))
+        wConfig.startPanel(CONF_TITLES[index])
+
+        line = wConfig.addLineTitle(STR(CONF_TITLES[index]) .. " " .. STR("Text"))
         form.addTextField(line, nil, function() return widget.listText[index] end,
             function(value) widget.listText[index] = value end)
 
-        line = form.addLine(STR(CONF_TITLES[index]) .. " " .. STR("BackgroundColor"))
+        line = wConfig.addLineTitle(STR(CONF_TITLES[index]) .. " " .. STR("BackgroundColor"))
         form.addColorField(line, nil, function() return widget.listBGColor[index] end,
             function(color) widget.listBGColor[index] = color end)
 
-        line = form.addLine(STR(CONF_TITLES[index]) .. " " .. STR("TextColor"))
+        line = wConfig.addLineTitle(STR(CONF_TITLES[index]) .. " " .. STR("TextColor"))
         form.addColorField(line, nil, function() return widget.listTxColor[index] end,
             function(color) widget.listTxColor[index] = color end)
-    end
 
-    --------------------------------------------------------------------------------------
-    --- Add static text configuration.
-    local function addConfigStaticText(title, text)
-        line = form.addLine(title)
-        form.addStaticText(line, nil, text)
+        wConfig.endPanel()
     end
 
     --------------------------------------------------------------------------------------
     --- Configure main
-    debugInfo("configure")
-    updateLanguage() -- check if system language has changed
+    local debug = wHelper.Debug:new(widget.no, "configure"):info()
+    updateLanguage(widget) -- check if system language has changed
+    wConfig.init({ form = form, widget = widget, STR = STR })
 
     -- Source
-    line = form.addLine(STR("Source"))
-    form.addSourceField(line, nil, function() return widget.source end,
-        function(value) widget.source = value end)
+    wConfig.addSourceField("source")
 
     -- Source switch
-    line = form.addLine(STR("SourceShow"))
-    form.addBooleanField(line, nil, function() return widget.sourceShow end,
-        function(value) widget.sourceShow = value end)
-
-    -- Title switch
-    line = form.addLine(STR("TitleShow"))
-    form.addBooleanField(line, nil, function() return widget.titleShow end,
-        function(value) widget.titleShow = value end)
-
-    -- Title (with text, background color and text color)
-    addConfigBlock(TITLE_INDEX) -- title
-
-    -- Title color use switch
-    line = form.addLine(STR(CONF_TITLES[TITLE_INDEX]) .. " " .. STR("ColorUse"))
-    form.addBooleanField(line, nil, function() return widget.titleColorUse end,
-        function(value) widget.titleColorUse = value end)
-
+    wConfig.addBooleanField("sourceShow")
 
     -- STATE_DOWN threshold
-    line = form.addLine(STR ("Threshold") .. " " .. STR(CONF_TITLES[STATE_DOWN]))
+    line = form.addLine(STR("Threshold") .. " " .. STR(CONF_TITLES[STATE_DOWN]))
     f = form.addNumberField(line, nil, THRESHOLD_MIN * 10, THRESHOLD_MAX * 10,
         function() return widget.thresholdDown * 10 end,
         function(value) widget.thresholdDown = value / 10 end);
     f:decimals(1)
 
     -- STATE_UP threshold
-    line = form.addLine(STR ("Threshold") .. " " .. STR(CONF_TITLES[STATE_UP]))
+    line = form.addLine(STR("Threshold") .. " " .. STR(CONF_TITLES[STATE_UP]))
     f = form.addNumberField(line, nil, THRESHOLD_MIN * 10, THRESHOLD_MAX * 10,
         function() return widget.thresholdUp * 10 end,
         function(value) widget.thresholdUp = value / 10 end);
@@ -514,6 +420,21 @@ local function configure(widget)
     line = form.addLine(STR("FontSize"))
     form.addChoiceField(line, nil, FONT_SIZE_SELECTION, function() return widget.fontSizeIndex end,
         function(value) widget.fontSizeIndex = value end)
+
+    -- Title
+    wConfig.startPanel(CONF_TITLES[1])
+    wConfig.addBooleanField("titleShow")
+    line = wConfig.addLineTitle(STR(CONF_TITLES[1]) .. " " .. STR("Text"))
+    form.addTextField(line, nil, function() return widget.listText[1] end,
+        function(value) widget.listText[1] = value end)
+    line = wConfig.addLineTitle(STR(CONF_TITLES[1]) .. " " .. STR("BackgroundColor"))
+    form.addColorField(line, nil, function() return widget.listBGColor[1] end,
+        function(color) widget.listBGColor[1] = color end)
+    line = wConfig.addLineTitle(STR(CONF_TITLES[1]) .. " " .. STR("TextColor"))
+    form.addColorField(line, nil, function() return widget.listTxColor[1] end,
+        function(color) widget.listTxColor[1] = color end)
+    wConfig.addBooleanField("titleColorUse")
+    wConfig.endPanel()
 
     -- All states (with text, background color and text color)
     addConfigBlock(STATE_DOWN)   -- down
@@ -526,16 +447,17 @@ local function configure(widget)
         function(value) widget.debugMode = value end)
 
     -- Widget Info
-    -- addConfigStaticText(STR("Widget"), name())
-    addConfigStaticText(STR("Widget"), STR("WidgetName"))
-    addConfigStaticText(STR("Version"), WIDGET_VERSION)
-    addConfigStaticText(STR("Author"), WIDGET_AUTOR)
+    wConfig.startPanel(STR("WidgetInfo"))
+    wConfig.addStaticText("Widget", STR("WidgetName"))
+    wConfig.addStaticText("Version", WIDGET_VERSION)
+    wConfig.addStaticText("Author", WIDGET_AUTOR)
+    wConfig.endPanel()
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 --- Handler to write (save) the widget configuration.
 local function write(widget)
-    debugInfo("write", "")
+    local debug = wHelper.Debug:new(widget.no, "write"):info()
 
     -- write widget version number for user data format
     -- (storage of the version number only introduced with version 1.1.0)
@@ -543,7 +465,7 @@ local function write(widget)
         100 * tonumber(string.match(WIDGET_VERSION, "%.(%d+)")) +
         tonumber(string.match(WIDGET_VERSION, "%.(%d+)$"))
     storage.write("Version", versionNumber)
-    debugInfo("write", "store version: " .. versionNumber)
+    debug:info("store version: " .. versionNumber)
 
     -- Source and source switch
     storage.write("Source", widget.source)
@@ -575,18 +497,18 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --- Handler to read (load) the widget configuration.
 local function read(widget)
-    debugInfo("read")
+    local debug = wHelper.Debug:new(widget.no, "read"):info()
 
     -- check first field Version number ( storage of the version number only introduced with version 1.1.0)
     local firstField = storage.read("Version")
     local versionNumber = 10000 --- date source version number , default: 10000 (version 1.0.0)
 
     if firstField == nil or type(firstField) ~= "number" then
-        debugInfo("read", "no version found -> set to Version 1.0.0 (010000)")
+        debug:info("no version found -> set to Version 1.0.0 (010000)")
         versionNumber = 10000
     else
         versionNumber = firstField
-        debugInfo("read", "found version: " .. tostring(versionNumber))
+        debug:info("found version: " .. tostring(versionNumber))
     end
 
     if versionNumber == 10000 then
@@ -624,7 +546,7 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --- Initialize the widget (register it in the system).
 local function init()
-    debugInfo("Init")
+    wHelper.Debug:new(0, "init")
     system.registerWidget({
         key = WIDGET_KEY,
         name = name,
@@ -641,4 +563,7 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --- Module main
 ------------------------------------------------------------------------------------------------------------------------
+warn("@on")
+initLibraries()
+
 return { init = init }
