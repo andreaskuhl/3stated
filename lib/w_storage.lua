@@ -53,7 +53,10 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --- Read widget config element to storage.
 function wStorage.read(key)
-    widget[key] = storage.read(CFL(key))
+    local value = storage.read(CFL(key))
+    if value ~= nil then
+        widget[key] = value
+    end
 end
 
 -----------------------------------------------------------------------------------------------------------------------
@@ -61,6 +64,5 @@ end
 return function(parameters)
     wHelper = parameters.wHelper
     CFL = wHelper.capitalizeFirstLetter
-
     return wStorage
 end

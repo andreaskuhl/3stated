@@ -134,11 +134,6 @@ local function create()
         },
         debugMode       = false, -- true: shows internal values in the widget
 
-        -- OLD:
-        -- listText        = { STR("Title"), STR("StateDown"), STR("StateMiddle"), STR("StateUp") }, -- text list: title (1) and state (2-4)
-        -- listBGColor     = { BG_COLOR_TITLE, BG_COLOR_DOWN, BG_COLOR_MID, BG_COLOR_UP },           -- background color list: title (1) and state (2-4)
-        -- listTxColor     = { TX_COLOR_TITLE, TX_COLOR_DOWN, TX_COLOR_MID, TX_COLOR_UP },           -- text color list: title (1) and state (2-4)
-
         -- get source value function
         getSourceValue  = function(self) return (wHelper.existSource(self.source) and self.source:value()) or 0 end,
         -- get source text function
@@ -429,46 +424,45 @@ end
 --- Handler to write (save) the widget configuration.
 local function write(widget)
     local debug = wHelper.Debug:new(widget.no, "write"):info()
+    wStorage.init({ storage = storage, widget = widget })
 
     -- write widget version number for user data format
-    -- (storage of the version number only introduced with version 1.1.0)
-    local versionNumber = 10000 * tonumber(string.match(WIDGET_VERSION, "(%d+)")) +
-        100 * tonumber(string.match(WIDGET_VERSION, "%.(%d+)")) +
-        tonumber(string.match(WIDGET_VERSION, "%.(%d+)$"))
+    local versionNumber = wHelper.versionStringToNumber(WIDGET_VERSION)
+    debug:info(string.format("store version %s (%d)", WIDGET_VERSION, versionNumber))
     storage.write("Version", versionNumber)
-    debug:info("store version: " .. versionNumber)
 
     -- Source and source switch
-    storage.write("Source", widget.source)
-    storage.write("SourceShow", widget.sourceShow)
+    wStorage.write("source")
+    wStorage.write("sourceShow")
 
     -- title show, text, background color and text color
-    storage.write("TitleShow", widget.titleShow)
-    storage.write("TitleText", widget.titleText)
-    storage.write("TitleBGColor", widget.titleBgColor)
-    storage.write("TitleTxColor", widget.titleTxColor)
-    storage.write("TitleColorUse", widget.titleColorUse)
+    wStorage.write("titleShow")
+    wStorage.write("titleText")
+    wStorage.write("titleBgColor")
+    wStorage.write("titleTxColor")
+    wStorage.write("titleColorUse")
 
     -- state thresholds and font size
-    storage.write("ThresholdDown", widget.thresholdDown)
-    storage.write("ThresholdUp", widget.thresholdUp)
-    storage.write("FontSizeIndex", widget.fontSizeIndex)
+    wStorage.write("thresholdDown")
+    wStorage.write("thresholdUp")
+    wStorage.write("fontSizeIndex")
 
     -- state text, background color and text color
     for stateIndex = STATE_DOWN, STATE_UP do
         storage.write("StateText" .. stateIndex, widget.states[stateIndex].text)
-        storage.write("StateBGColor" .. stateIndex, widget.states[stateIndex].bgColor)
+        storage.write("StateBgColor" .. stateIndex, widget.states[stateIndex].bgColor)
         storage.write("StateTxColor" .. stateIndex, widget.states[stateIndex].txColor)
     end
 
     -- debug mode
-    storage.write("DebugMode", widget.debugMode)
+    wStorage.write("debugMode")
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 --- Handler to read (load) the widget configuration.
 local function read(widget)
     local debug = wHelper.Debug:new(widget.no, "read"):info()
+    wStorage.init({ storage = storage, widget = widget })
 
     -- check first field Version number ( storage of the version number only introduced with version 1.1.0)
     local firstField = storage.read("Version")
@@ -487,31 +481,31 @@ local function read(widget)
         widget.source = firstField
     else
         -- Version > 1.0.0 first field is version number -> read source
-        widget.source = storage.read("Source")
+        wStorage.read("source")
     end
-    widget.sourceShow = storage.read("SourceShow")
+    wStorage.read("sourceShow")
 
     -- title text, background color and text color
-    widget.titleShow = storage.read("TitleShow")
-    widget.titleText = storage.read("TitleText")
-    widget.titleBgColor = storage.read("TitleBGColor")
-    widget.titleTxColor = storage.read("TitleTxColor")
-    widget.titleColorUse = storage.read("TitleColorUse")
+    wStorage.read("titleShow")
+    wStorage.read("titleText")
+    wStorage.read("titleBgColor")
+    wStorage.read("titleTxColor")
+    wStorage.read("titleColorUse")
 
     -- state thresholds and font size
-    widget.thresholdDown = storage.read("ThresholdDown")
-    widget.thresholdUp = storage.read("ThresholdUp")
-    widget.fontSizeIndex = storage.read("FontSizeIndex")
+    wStorage.read("thresholdDown")
+    wStorage.read("thresholdUp")
+    wStorage.read("fontSizeIndex")
 
     -- state text, background color and text color
     for stateIndex = STATE_DOWN, STATE_UP do
         widget.states[stateIndex].text = storage.read("StateText" .. stateIndex)       -- state text
-        widget.states[stateIndex].bgColor = storage.read("StateBGColor" .. stateIndex) -- background color
+        widget.states[stateIndex].bgColor = storage.read("StateBgColor" .. stateIndex) -- background color
         widget.states[stateIndex].txColor = storage.read("StateTxColor" .. stateIndex) -- text color
     end
 
     -- debug mode
-    widget.debugMode = storage.read("DebugMode")
+    wStorage.read("debugMode")
 end
 
 ------------------------------------------------------------------------------------------------------------------------
