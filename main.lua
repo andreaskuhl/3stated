@@ -38,10 +38,7 @@ local STR                 = assert(loadfile("i18n/i18n.lua"))().translate -- loa
 local WIDGET_NAME_MAP     = assert(loadfile("i18n/w_name.lua"))()         -- load widget name map
 local currentLocale       = system.getLocale()                            -- current system language
 
---- List indexes (used for states)
-local STATE_DOWN          = 2
-local STATE_MIDDLE        = 3
-local STATE_UP            = 4
+local STATE               = { DOWN = 1, MIDDLE = 2, UP = 3 }
 
 --- Defaults
 local THRESHOLD_MIN       = -1024 -- Minimum threshold for configuration form.
@@ -128,9 +125,9 @@ local function create()
         thresholdUp     = 50,                      -- threshold for state up
         fontSizeIndex   = FONT_SIZE_INDEX_DEFAULT, -- index of font size
         states          = {                        -- list of test and colors for title and states
-            [STATE_DOWN] = { title = "StateDown", text = STR("StateDown"), bgColor = BG_COLOR_DOWN, txColor = TX_COLOR_DOWN },
-            [STATE_MIDDLE] = { title = "StateMiddle", text = STR("StateMiddle"), bgColor = BG_COLOR_MID, txColor = TX_COLOR_MID },
-            [STATE_UP] = { title = "StateUp", text = STR("StateUp"), bgColor = BG_COLOR_UP, txColor = TX_COLOR_UP },
+            { title = "StateDown",   text = STR("StateDown"),   bgColor = BG_COLOR_DOWN, txColor = TX_COLOR_DOWN },
+            { title = "StateMiddle", text = STR("StateMiddle"), bgColor = BG_COLOR_MID,  txColor = TX_COLOR_MID },
+            { title = "StateUp",     text = STR("StateUp"),     bgColor = BG_COLOR_UP,   txColor = TX_COLOR_UP },
         },
         debugMode       = false, -- true: shows internal values in the widget
 
@@ -141,11 +138,11 @@ local function create()
         -- get state function -> 1-3 meant(down/middle/up)
         getState        = function(self)
             if self:getSourceValue() < self.thresholdDown then
-                return STATE_DOWN
+                return STATE.DOWN
             elseif self:getSourceValue() < self.thresholdUp then
-                return STATE_MIDDLE
+                return STATE.MIDDLE
             else
-                return STATE_UP
+                return STATE.UP
             end
         end,
         getStateTitle   = function(self) return self.states[self:getState()].title end,
@@ -259,11 +256,11 @@ local function paint(widget)
         line[1] = widget.source:name() .. ": " .. widget:getSourceValue() .. " (" .. widget:getSourceText() .. ")"
 
         -- line 2: state and thresholds
-        if widget:getState() == STATE_DOWN then
+        if widget:getState() == STATE.DOWN then
             line[2] = "< " .. widget.thresholdDown
-        elseif widget:getState() == STATE_MIDDLE then
+        elseif widget:getState() == STATE.MIDDLE then
             line[2] = ">= " .. widget.thresholdDown .. " & < " .. widget.thresholdUp
-        elseif widget:getState() == STATE_UP then
+        elseif widget:getState() == STATE.UP then
             line[2] = ">= " .. widget.thresholdUp
         end
 
@@ -345,7 +342,7 @@ local function paint(widget)
 
     if not wHelper.existSource(widget.source) then -- source missed
         paintSourceMissed()
-    elseif widget:getState() == STATE_DOWN or widget:getState() == STATE_MIDDLE or widget:getState() == STATE_UP then
+    elseif widget:getState() == STATE.DOWN or widget:getState() == STATE.MIDDLE or widget:getState() == STATE.UP then
         paintState()
     else -- invalid state
         assert(false, "Error: Invalid widget state")
@@ -405,9 +402,9 @@ local function configure(widget)
     wConfig.endPanel()
 
     -- All states (with text, background color and text color)
-    addConfigBlock(STATE_DOWN)   -- down
-    addConfigBlock(STATE_MIDDLE) -- middle
-    addConfigBlock(STATE_UP)     -- up
+    addConfigBlock(STATE.DOWN)   -- down
+    addConfigBlock(STATE.MIDDLE) -- middle
+    addConfigBlock(STATE.UP)     -- up
 
     -- Debug mode
     wConfig.addBooleanField("debugMode")
@@ -448,7 +445,7 @@ local function write(widget)
     wStorage.write("fontSizeIndex")
 
     -- state text, background color and text color
-    for stateIndex = STATE_DOWN, STATE_UP do
+    for stateIndex = STATE.DOWN, STATE.UP do
         storage.write("StateText" .. stateIndex, widget.states[stateIndex].text)
         storage.write("StateBgColor" .. stateIndex, widget.states[stateIndex].bgColor)
         storage.write("StateTxColor" .. stateIndex, widget.states[stateIndex].txColor)
@@ -498,7 +495,7 @@ local function read(widget)
     wStorage.read("fontSizeIndex")
 
     -- state text, background color and text color
-    for stateIndex = STATE_DOWN, STATE_UP do
+    for stateIndex = STATE.DOWN, STATE.UP do
         widget.states[stateIndex].text = storage.read("StateText" .. stateIndex)       -- state text
         widget.states[stateIndex].bgColor = storage.read("StateBgColor" .. stateIndex) -- background color
         widget.states[stateIndex].txColor = storage.read("StateTxColor" .. stateIndex) -- text color
