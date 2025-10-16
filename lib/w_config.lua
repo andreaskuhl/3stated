@@ -134,7 +134,7 @@ end
 function wConfig.addNumberField(key, min, max)
     if not wConfig.existWidgetKey("addNumberField", key) then return end
     line = wConfig.addLine(CFL(key))
-    form.addNumberField(line, nil, min, max, function() return widget[key] end, function(value) widget[key] = value end)
+    return form.addNumberField(line, nil, min, max, function() return widget[key] end, function(value) widget[key] = value end)
 end
 
 ------------------------------------------------------------------------------------------------------------------------

@@ -38,8 +38,7 @@ local STR                 = assert(loadfile("i18n/i18n.lua"))().translate -- loa
 local WIDGET_NAME_MAP     = assert(loadfile("i18n/w_name.lua"))()         -- load widget name map
 local currentLocale       = system.getLocale()                            -- current system language
 
---- List indexes (used for listText, listBGColor and listTxColor)
-local TITLE_INDEX         = 1
+--- List indexes (used for states)
 local STATE_DOWN          = 2
 local STATE_MIDDLE        = 3
 local STATE_UP            = 4
@@ -49,7 +48,6 @@ local THRESHOLD_MIN       = -1024 -- Minimum threshold for configuration form.
 local THRESHOLD_MAX       = 1024  -- Minimum threshold for configuration form.
 
 --- User interface
-local CONF_TITLES         = { "Title", "StateDown", "StateMiddle", "StateUp" }   -- configuration title (1-4)
 local FONT_SIZES          = {
     FONT_XS, FONT_S, FONT_STD, FONT_L, FONT_XL, FONT_XXL }                       -- global font IDs (1-6)
 local FONT_SIZE_SELECTION = {
@@ -114,22 +112,33 @@ local function create()
     --- Create widget data structure with default values.
     return {
         -- widget variables
-        no              = widgetCounter,                                                          -- widget instance number
-        width           = nil,                                                                    -- widget height
-        height          = nil,                                                                    -- widget width
+        no              = widgetCounter,           -- widget instance number
+        width           = nil,                     -- widget height
+        height          = nil,                     -- widget width
 
-        source          = nil,                                                                    -- source
-        sourceLastValue = 0,                                                                      -- last source value
-        sourceShow      = true,                                                                   -- source switch
-        titleShow       = true,                                                                   -- title switch
-        titleColorUse   = true,                                                                   -- title color switch
-        thresholdDown   = -50,                                                                    -- threshold for state down
-        thresholdUp     = 50,                                                                     -- threshold for state up
-        fontSizeIndex   = FONT_SIZE_INDEX_DEFAULT,                                                -- index of font size
-        listText        = { STR("Title"), STR("StateDown"), STR("StateMiddle"), STR("StateUp") }, -- text list: title (1) and state (2-4)
-        listBGColor     = { BG_COLOR_TITLE, BG_COLOR_DOWN, BG_COLOR_MID, BG_COLOR_UP },           -- background color list: title (1) and state (2-4)
-        listTxColor     = { TX_COLOR_TITLE, TX_COLOR_DOWN, TX_COLOR_MID, TX_COLOR_UP },           -- text color list: title (1) and state (2-4)
-        debugMode       = false,                                                                  -- true: shows internal values in the widget
+        source          = nil,                     -- source
+        sourceLastValue = 0,                       -- last source value
+        sourceShow      = true,                    -- source switch
+        titleShow       = true,                    -- title switch
+        titleText       = STR("Title"),            -- title text
+        titleColorUse   = true,                    -- title color switch
+        titleBgColor    = BG_COLOR_TITLE,          -- title background color
+        titleTxColor    = TX_COLOR_TITLE,          -- title text color
+        thresholdDown   = -50,                     -- threshold for state down
+        thresholdUp     = 50,                      -- threshold for state up
+        fontSizeIndex   = FONT_SIZE_INDEX_DEFAULT, -- index of font size
+        states          = {                        -- list of test and colors for title and states
+            [STATE_DOWN] = { title = "StateDown", text = STR("StateDown"), bgColor = BG_COLOR_DOWN, txColor = TX_COLOR_DOWN },
+            [STATE_MIDDLE] = { title = "StateMiddle", text = STR("StateMiddle"), bgColor = BG_COLOR_MID, txColor = TX_COLOR_MID },
+            [STATE_UP] = { title = "StateUp", text = STR("StateUp"), bgColor = BG_COLOR_UP, txColor = TX_COLOR_UP },
+        },
+        debugMode       = false, -- true: shows internal values in the widget
+
+        -- OLD:
+        -- listText        = { STR("Title"), STR("StateDown"), STR("StateMiddle"), STR("StateUp") }, -- text list: title (1) and state (2-4)
+        -- listBGColor     = { BG_COLOR_TITLE, BG_COLOR_DOWN, BG_COLOR_MID, BG_COLOR_UP },           -- background color list: title (1) and state (2-4)
+        -- listTxColor     = { TX_COLOR_TITLE, TX_COLOR_DOWN, TX_COLOR_MID, TX_COLOR_UP },           -- text color list: title (1) and state (2-4)
+
         -- get source value function
         getSourceValue  = function(self) return (wHelper.existSource(self.source) and self.source:value()) or 0 end,
         -- get source text function
@@ -143,7 +152,11 @@ local function create()
             else
                 return STATE_UP
             end
-        end
+        end,
+        getStateTitle   = function(self) return self.states[self:getState()].title end,
+        getStateText    = function(self) return self.states[self:getState()].text end,
+        getStateBgColor = function(self) return self.states[self:getState()].bgColor end,
+        getStateTxColor = function(self) return self.states[self:getState()].txColor end,
     }
 end
 
@@ -160,7 +173,7 @@ local function wakeup(widget)
         widget.sourceLastValue = actValue
         debug:info("widget value is changed to " ..
             "value = " .. actValue .. ", text = " .. widget:getSourceText() ..
-            ", " .. widget:getState() .. " = " .. STR(CONF_TITLES[widget:getState()]))
+            ", " .. widget:getState() .. " = " .. STR(widget:getStateTitle()))
     end
 end
 
@@ -218,8 +231,8 @@ local function paint(widget)
         end
 
         -- set title text
-        if widget.titleShow and wHelper.existText(widget.listText[TITLE_INDEX]) then
-            titleText = formatText(widget.listText[TITLE_INDEX])
+        if widget.titleShow and wHelper.existText(widget.titleText) then
+            titleText = formatText(widget.titleText)
         end
 
         -- combine source and title text
@@ -232,10 +245,10 @@ local function paint(widget)
         -- paint title
         if widget.titleColorUse then
             -- title background and title text color
-            wPaint.title(titleText, widget.listBGColor[TITLE_INDEX], widget.listTxColor[TITLE_INDEX])
+            wPaint.title(titleText, widget.titleBgColor, widget.titleTxColor)
         else
             -- use state colors
-            wPaint.title(titleText, widget.listBGColor[widget:getState()], widget.listTxColor[widget:getState()])
+            wPaint.title(titleText, widget:getStateBgColor(), widget:getStateTxColor())
         end
     end
 
@@ -261,8 +274,8 @@ local function paint(widget)
 
         -- line 3: state text
         if line[2] then
-            line[2] = line[2] .. " -> " .. STR(CONF_TITLES[widget:getState()])
-            line[3] = "\"" .. formatText(widget.listText[widget:getState()]) .. "\""
+            line[2] = line[2] .. " -> " .. STR(widget:getStateTitle())
+            line[3] = "\"" .. formatText(widget:getStateText()) .. "\""
         else
             line[2] = "Status: " .. STR("StateUnknown")
             line[3] = ""
@@ -277,7 +290,7 @@ local function paint(widget)
     --------------------------------------------------------------------------------------------------------------------
     ---  paint multiline state text
     local function paintStateText()
-        local lines = wHelper.splitLines(widget.listText[widget:getState()])
+        local lines = wHelper.splitLines(widget:getStateText())
         local n = #lines
         for i, line in ipairs(lines) do
             local offset = -n / 2 - 0.5 + i
@@ -292,16 +305,17 @@ local function paint(widget)
         local debug = wHelper.Debug:new(widget.no, "paintState"):info()
         assert(wHelper.existSource(widget.source))
 
-        --- paint background and preset text color
-        lcd.color(widget.listBGColor[widget:getState()])
+        -- paint background
+        lcd.color(widget:getStateBgColor())
         lcd.drawFilledRectangle(0, 0, widget.width, widget.height)
 
-        --- paint title (must be before paint state text or debug information)
+        -- paint title (must be before paint state text or debug information)
         paintTitle()
 
-        lcd.color(widget.listTxColor[widget:getState()])
+        -- preset text color
+        lcd.color(widget:getStateTxColor())
 
-        --- paint state text (debug oder standard)
+        -- paint state text (debug oder standard)
         if widget.debugMode then
             paintDebugInfo()
         else
@@ -352,19 +366,19 @@ local function configure(widget)
     --------------------------------------------------------------------------------------------------------------------
     --- Add configuration for title or state (text, background color and text color).
     local function addConfigBlock(index)
-        wConfig.startPanel(CONF_TITLES[index])
+        wConfig.startPanel(widget.states[index].title)
 
-        line = wConfig.addLineTitle(STR(CONF_TITLES[index]) .. " " .. STR("Text"))
-        form.addTextField(line, nil, function() return widget.listText[index] end,
-            function(value) widget.listText[index] = value end)
+        line = wConfig.addLineTitle(STR(widget.states[index].title) .. " " .. STR("Text"))
+        form.addTextField(line, nil, function() return widget.states[index].text end,
+            function(value) widget.states[index].text = value end)
 
-        line = wConfig.addLineTitle(STR(CONF_TITLES[index]) .. " " .. STR("BackgroundColor"))
-        form.addColorField(line, nil, function() return widget.listBGColor[index] end,
-            function(color) widget.listBGColor[index] = color end)
+        line = wConfig.addLineTitle(STR(widget.states[index].title) .. " " .. STR("BackgroundColor"))
+        form.addColorField(line, nil, function() return widget.states[index].bgColor end,
+            function(color) widget.states[index].bgColor = color end)
 
-        line = wConfig.addLineTitle(STR(CONF_TITLES[index]) .. " " .. STR("TextColor"))
-        form.addColorField(line, nil, function() return widget.listTxColor[index] end,
-            function(color) widget.listTxColor[index] = color end)
+        line = wConfig.addLineTitle(STR(widget.states[index].title) .. " " .. STR("TextColor"))
+        form.addColorField(line, nil, function() return widget.states[index].txColor end,
+            function(color) widget.states[index].txColor = color end)
 
         wConfig.endPanel()
     end
@@ -377,41 +391,21 @@ local function configure(widget)
 
     -- Source
     wConfig.addSourceField("source")
-
-    -- Source switch
     wConfig.addBooleanField("sourceShow")
 
-    -- STATE_DOWN threshold
-    line = form.addLine(STR("Threshold") .. " " .. STR(CONF_TITLES[STATE_DOWN]))
-    f = form.addNumberField(line, nil, THRESHOLD_MIN * 10, THRESHOLD_MAX * 10,
-        function() return widget.thresholdDown * 10 end,
-        function(value) widget.thresholdDown = value / 10 end);
-    f:decimals(1)
-
-    -- STATE_UP threshold
-    line = form.addLine(STR("Threshold") .. " " .. STR(CONF_TITLES[STATE_UP]))
-    f = form.addNumberField(line, nil, THRESHOLD_MIN * 10, THRESHOLD_MAX * 10,
-        function() return widget.thresholdUp * 10 end,
-        function(value) widget.thresholdUp = value / 10 end);
-    f:decimals(1)
+    -- thresholds
+    wConfig.addNumberField("thresholdDown", THRESHOLD_MIN, THRESHOLD_MAX)
+    wConfig.addNumberField("thresholdUp", THRESHOLD_MIN, THRESHOLD_MAX)
 
     -- Font size
-    line = form.addLine(STR("FontSize"))
-    form.addChoiceField(line, nil, FONT_SIZE_SELECTION, function() return widget.fontSizeIndex end,
-        function(value) widget.fontSizeIndex = value end)
+    wConfig.addChoiceField("fontSizeIndex", FONT_SIZE_SELECTION)
 
     -- Title
-    wConfig.startPanel(CONF_TITLES[1])
+    wConfig.startPanel("Title")
     wConfig.addBooleanField("titleShow")
-    line = wConfig.addLineTitle(STR(CONF_TITLES[1]) .. " " .. STR("Text"))
-    form.addTextField(line, nil, function() return widget.listText[1] end,
-        function(value) widget.listText[1] = value end)
-    line = wConfig.addLineTitle(STR(CONF_TITLES[1]) .. " " .. STR("BackgroundColor"))
-    form.addColorField(line, nil, function() return widget.listBGColor[1] end,
-        function(color) widget.listBGColor[1] = color end)
-    line = wConfig.addLineTitle(STR(CONF_TITLES[1]) .. " " .. STR("TextColor"))
-    form.addColorField(line, nil, function() return widget.listTxColor[1] end,
-        function(color) widget.listTxColor[1] = color end)
+    wConfig.addTextField("titleText")
+    wConfig.addColorField("titleBgColor")
+    wConfig.addColorField("titleTxColor")
     wConfig.addBooleanField("titleColorUse")
     wConfig.endPanel()
 
@@ -421,13 +415,11 @@ local function configure(widget)
     addConfigBlock(STATE_UP)     -- up
 
     -- Debug mode
-    line = form.addLine(STR("DebugMode"))
-    form.addBooleanField(line, nil, function() return widget.debugMode end,
-        function(value) widget.debugMode = value end)
+    wConfig.addBooleanField("debugMode")
 
     -- Widget Info
-    wConfig.startPanel(STR("WidgetInfo"))
-    wConfig.addStaticText("Widget", STR("WidgetName"))
+    wConfig.startPanel("WidgetInfo")
+    wConfig.addStaticText("WidgetInfoName", STR("WidgetName"))
     wConfig.addStaticText("Version", WIDGET_VERSION)
     wConfig.addStaticText("Author", WIDGET_AUTOR)
     wConfig.endPanel()
@@ -452,9 +444,9 @@ local function write(widget)
 
     -- title show, text, background color and text color
     storage.write("TitleShow", widget.titleShow)
-    storage.write("TitleText", widget.listText[TITLE_INDEX])
-    storage.write("TitleBGColor", widget.listBGColor[TITLE_INDEX])
-    storage.write("TitleTxColor", widget.listTxColor[TITLE_INDEX])
+    storage.write("TitleText", widget.titleText)
+    storage.write("TitleBGColor", widget.titleBgColor)
+    storage.write("TitleTxColor", widget.titleTxColor)
     storage.write("TitleColorUse", widget.titleColorUse)
 
     -- state thresholds and font size
@@ -464,9 +456,9 @@ local function write(widget)
 
     -- state text, background color and text color
     for stateIndex = STATE_DOWN, STATE_UP do
-        storage.write("StateText" .. stateIndex, widget.listText[stateIndex])
-        storage.write("StateBGColor" .. stateIndex, widget.listBGColor[stateIndex])
-        storage.write("StateTxColor" .. stateIndex, widget.listTxColor[stateIndex])
+        storage.write("StateText" .. stateIndex, widget.states[stateIndex].text)
+        storage.write("StateBGColor" .. stateIndex, widget.states[stateIndex].bgColor)
+        storage.write("StateTxColor" .. stateIndex, widget.states[stateIndex].txColor)
     end
 
     -- debug mode
@@ -501,9 +493,9 @@ local function read(widget)
 
     -- title text, background color and text color
     widget.titleShow = storage.read("TitleShow")
-    widget.listText[TITLE_INDEX] = storage.read("TitleText")
-    widget.listBGColor[TITLE_INDEX] = storage.read("TitleBGColor")
-    widget.listTxColor[TITLE_INDEX] = storage.read("TitleTxColor")
+    widget.titleText = storage.read("TitleText")
+    widget.titleBgColor = storage.read("TitleBGColor")
+    widget.titleTxColor = storage.read("TitleTxColor")
     widget.titleColorUse = storage.read("TitleColorUse")
 
     -- state thresholds and font size
@@ -513,9 +505,9 @@ local function read(widget)
 
     -- state text, background color and text color
     for stateIndex = STATE_DOWN, STATE_UP do
-        widget.listText[stateIndex] = storage.read("StateText" .. stateIndex)       -- state text
-        widget.listBGColor[stateIndex] = storage.read("StateBGColor" .. stateIndex) -- background color
-        widget.listTxColor[stateIndex] = storage.read("StateTxColor" .. stateIndex) -- text color
+        widget.states[stateIndex].text = storage.read("StateText" .. stateIndex)       -- state text
+        widget.states[stateIndex].bgColor = storage.read("StateBGColor" .. stateIndex) -- background color
+        widget.states[stateIndex].txColor = storage.read("StateTxColor" .. stateIndex) -- text color
     end
 
     -- debug mode
