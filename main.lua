@@ -90,7 +90,6 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 -- Handler to get the widget name in the current system language.
 local function name() -- Widget name (ASCII) - only for name() Handler
-    wHelper.Debug:new(0, "name"):info()
     local lang = system.getLocale and system.getLocale() or "en"
     return WIDGET_NAME_MAP[lang] or WIDGET_NAME_MAP["en"]
 end
@@ -151,71 +150,53 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --- Handler to wake up the widget (check for source value changes and initiating redrawing if necessary).
 local function wakeup(widget)
-    --------------------------------------------------------------------------------------------------------------------
-    --- Check if the value  has changed (returns true if changed).
-    local function isWidgetChanged()
-        local debug = wHelper.Debug:new(widget.no, "isWidgetChanged")
-        local isChanged = false
+    local debug = wHelper.Debug:new(widget.no, "wakeup")
+    if not wHelper.existSource(widget.source) then return end
 
-        if not wHelper.existSource(widget.source) then return false end
-
-        -- check if source value has changed
-        local actValue = widget.source:value()
-        if widget.sourceLastValue ~= actValue then
-            isChanged = true
-            widget.sourceLastValue = actValue
-            debug:info("widget value is changed to " ..
-                "value = " .. actValue .. ", text = " .. widget:getSourceText() ..
-                ", " .. widget:getState() .. " = " .. STR(CONF_TITLES[widget:getState()]))
-        end
-
-        return isChanged
-    end
-
-    --------------------------------------------------------------------------------------------------------------------
-    -- Wakeup main
-    -- local debug = wHelper.Debug:new(widget.no, "wakeup")
-
-    if isWidgetChanged() then
+    -- check if source value has changed
+    local actValue = widget.source:value()
+    if widget.sourceLastValue ~= actValue then
         lcd.invalidate()
-        -- debug:info("LCD invalidate")
+        widget.sourceLastValue = actValue
+        debug:info("widget value is changed to " ..
+            "value = " .. actValue .. ", text = " .. widget:getSourceText() ..
+            ", " .. widget:getState() .. " = " .. STR(CONF_TITLES[widget:getState()]))
     end
 end
 
 ------------------------------------------------------------------------------------------------------------------------
 --- Handler to paint (draw) the widget.
 local function paint(widget)
-
     --------------------------------------------------------------------------------------------------------------------
     --- Format state text by replacing placeholders in a given string.
     --- Supported placeholders:
-    ---   _v    -> widget:getSourceValue() as number (without decimals)
-    ---   _<N>v -> widget:getSourceValue() as float with N decimals (e.g., _3v for three decimals)
-    ---   _t    -> widget:getSourceText()
+    ---   _v    -> widget:getSourceValue() as number (without decimals) -> "8"
+    ---   _<N>v -> widget:getSourceValue() as float with N decimals (e.g., _3v for three decimals) -> "7,532"
+    ---   _t    -> widget:getSourceText()-> "7,5V"
     ---   __    -> literal "_"
     local function formatText(stateText)
         -- local debug = wHelper.Debug:new(widget.no, "formatText")
         local UNDERSCORE_PLACEHOLDER = "\1"
-        local val = (widget and widget:getSourceValue()) or 0
-        local txt = (widget and widget:getSourceText()) or ""
-        local s = stateText or ""
+        local sourceValue = (widget and widget:getSourceValue()) or 0
+        local sourceText = (widget and widget:getSourceText()) or ""
+        local text = stateText or ""
         -- debug:info("Input: " .. s .. ", value: " .. val .. ", text: " .. txt)
 
-        if s == "" then return "" end
+        if text == "" then return "" end
 
-        s = s:gsub("__", UNDERSCORE_PLACEHOLDER) -- temporary placeholder for literal '__' to avoid accidental replacement
+        text = text:gsub("__", UNDERSCORE_PLACEHOLDER) -- temporary placeholder for literal '__' to avoid accidental replacement
 
-        s = s:gsub("_(%d+)v",                    -- value: replace floating formats like _0v, _1v, _2v, _3v etc. capture digits before v
+        text = text:gsub("_(%d+)v",                    -- value: replace floating formats like _0v, _1v, _2v, _3v etc. capture digits before v
             function(precision)
                 local n = tonumber(precision) or 0
                 local formatStr = string.format("%%.%df", n)
-                return string.format(formatStr, tonumber(val) or 0)
+                return string.format(formatStr, tonumber(sourceValue) or 0)
             end)
-        s = s:gsub("_v", string.format("%.0f", tonumber(val) or 0)) -- value: replace default float _v as value number (float without decimals)
-        s = s:gsub("_t", function() return tostring(txt) end)       -- text: replace _t as value text (use function replacement so '%' in txt is not interpreted)
-        s = s:gsub(UNDERSCORE_PLACEHOLDER, "_")                     -- restore literal underscore
+        text = text:gsub("_v", string.format("%.0f", tonumber(sourceValue) or 0)) -- value: replace default float _v as value number (float without decimals)
+        text = text:gsub("_t", function() return tostring(sourceText) end)        -- text: replace _t as value text (use function replacement so '%' in txt is not interpreted)
+        text = text:gsub(UNDERSCORE_PLACEHOLDER, "_")                             -- restore literal underscore
 
-        return s
+        return text
     end
 
     --------------------------------------------------------------------------------------------------------------------
@@ -248,6 +229,7 @@ local function paint(widget)
             titleText = sourceText
         end
 
+        -- paint title
         if widget.titleColorUse then
             -- title background and title text color
             wPaint.title(titleText, widget.listBGColor[TITLE_INDEX], widget.listTxColor[TITLE_INDEX])
@@ -295,14 +277,11 @@ local function paint(widget)
     --------------------------------------------------------------------------------------------------------------------
     ---  paint multiline state text
     local function paintStateText()
-        -- local debug = wHelper.Debug:new(widget.no, "paintStateText")
-
         local lines = wHelper.splitLines(widget.listText[widget:getState()])
         local n = #lines
         for i, line in ipairs(lines) do
             local offset = -n / 2 - 0.5 + i
             line = formatText(line)
-            -- debug:info(string.format("Offset: %.2f | Zeile: %s", offset, line))
             wPaint.text(line, FONT_SIZES[widget.fontSizeIndex], TEXT_CENTERED, wPaint.LINE_CENTERED, offset)
         end
     end
