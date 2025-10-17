@@ -17,7 +17,7 @@
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
---- Modul locals (constants)
+--- Modul locals (constants and variables)
 ------------------------------------------------------------------------------------------------------------------------
 
 --- Application control and information
@@ -38,11 +38,11 @@ local STR                 = assert(loadfile("i18n/i18n.lua"))().translate -- loa
 local WIDGET_NAME_MAP     = assert(loadfile("i18n/w_name.lua"))()         -- load widget name map
 local currentLocale       = system.getLocale()                            -- current system language
 
-local STATE               = { DOWN = 1, MIDDLE = 2, UP = 3 }
 
---- Defaults
-local THRESHOLD_MIN       = -1024 -- Minimum threshold for configuration form.
-local THRESHOLD_MAX       = 1024  -- Minimum threshold for configuration form.
+--- State
+local STATE               = { DOWN = 1, MIDDLE = 2, UP = 3 }
+local THRESHOLD_RANGE       = 1024  -- Minimum and maximum threshold for configuration form.
+local THRESHOLD_PRECISION = 2     -- Precision (number of decimals) for threshold configuration form.
 
 --- User interface
 local FONT_SIZES          = {
@@ -160,7 +160,7 @@ local function wakeup(widget)
 
     -- check if source value has changed
     local actValue = widget.source:value()
-    if widget.sourceLastValue ~= actValue then
+    if actValue ~= nil and widget.sourceLastValue ~= actValue then
         lcd.invalidate()
         widget.sourceLastValue = actValue
         debug:info("widget value is changed to " ..
@@ -383,22 +383,22 @@ local function configure(widget)
 
     -- Source
     wConfig.addSourceField("source")
-    wConfig.addBooleanField("sourceShow")
 
     -- thresholds
-    wConfig.addNumberField("thresholdDown", THRESHOLD_MIN, THRESHOLD_MAX)
-    wConfig.addNumberField("thresholdUp", THRESHOLD_MIN, THRESHOLD_MAX)
+    wConfig.addNumberField("thresholdDown", -THRESHOLD_RANGE, THRESHOLD_RANGE, THRESHOLD_PRECISION)
+    wConfig.addNumberField("thresholdUp", -THRESHOLD_RANGE, THRESHOLD_RANGE, THRESHOLD_PRECISION)
 
     -- Font size
     wConfig.addChoiceField("fontSizeIndex", FONT_SIZE_SELECTION)
 
     -- Title
     wConfig.startPanel("Title")
+    wConfig.addBooleanField("sourceShow")
     wConfig.addBooleanField("titleShow")
     wConfig.addTextField("titleText")
+    wConfig.addBooleanField("titleColorUse")
     wConfig.addColorField("titleBgColor")
     wConfig.addColorField("titleTxColor")
-    wConfig.addBooleanField("titleColorUse")
     wConfig.endPanel()
 
     -- All states (with text, background color and text color)
@@ -408,6 +408,15 @@ local function configure(widget)
 
     -- Debug mode
     wConfig.addBooleanField("debugMode")
+
+    -- Placeholder Information
+    wConfig.startPanel("PlaceholderInfo")
+    wConfig.addStaticText("PlaceholderText", "_t")
+    wConfig.addStaticText("PlaceholderValue", "_v")
+    wConfig.addStaticText("PlaceholderFloat", "_<N>v")
+    wConfig.addStaticText("PlaceholderBreak", "_b")
+    wConfig.addStaticText("PlaceholderSpecial", "__")
+    wConfig.endPanel()
 
     -- Widget Info
     wConfig.startPanel("WidgetInfo")

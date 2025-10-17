@@ -131,10 +131,15 @@ end
 
 ------------------------------------------------------------------------------------------------------------------------
 --- Add number field
-function wConfig.addNumberField(key, min, max)
+function wConfig.addNumberField(key, min, max, precision)
     if not wConfig.existWidgetKey("addNumberField", key) then return end
+    precision = precision or 0
+    local factor = 10 ^ precision
     line = wConfig.addLine(CFL(key))
-    return form.addNumberField(line, nil, min, max, function() return widget[key] end, function(value) widget[key] = value end)
+    return (form.addNumberField(line, nil, min * factor, max * factor,
+        function() return widget[key]*factor end,
+        function(value) widget[key] = value/factor end)
+    ):decimals(precision)
 end
 
 ------------------------------------------------------------------------------------------------------------------------

@@ -3,8 +3,8 @@ setlocal
 
 REM Name der ZIP-Datei und des Basis-Verzeichnis
 set BASEDIR=..
-set BASENAME=cflmode
-set ZIPFILE="%BASEDIR%\%BASENAME%_1_0_0.zip"
+set BASENAME=3stated
+set ZIPFILE="%BASEDIR%\%BASENAME%_2_0_0.zip"
 
 REM Vorhandene ZIP-Datei löschen
 if exist "%ZIPFILE%" (
