@@ -21,7 +21,7 @@
 ------------------------------------------------------------------------------------------------------------------------
 
 --- Application control and information
-local WIDGET_VERSION      = "1.1.0"                                 -- version information
+local WIDGET_VERSION      = "2.0.0"                                 -- version information
 local WIDGET_KEY          = "3STATED"                               -- unique widget key (max. 7 characters)
 local WIDGET_AUTOR        = "Andreas Kuhl (github.com/andreaskuhl)" -- author information
 local DEBUG_MODE          = false                                    -- true: show debug information, false: release mode
@@ -38,11 +38,10 @@ local STR                 = assert(loadfile("i18n/i18n.lua"))().translate -- loa
 local WIDGET_NAME_MAP     = assert(loadfile("i18n/w_name.lua"))()         -- load widget name map
 local currentLocale       = system.getLocale()                            -- current system language
 
-
 --- State
 local STATE               = { DOWN = 1, MIDDLE = 2, UP = 3 }
-local THRESHOLD_RANGE       = 1024  -- Minimum and maximum threshold for configuration form.
-local THRESHOLD_PRECISION = 2     -- Precision (number of decimals) for threshold configuration form.
+local THRESHOLD_RANGE     = 1024 -- Minimum and maximum threshold for configuration form.
+local THRESHOLD_PRECISION = 2    -- Precision (number of decimals) for threshold configuration form.
 
 --- User interface
 local FONT_SIZES          = {
@@ -115,7 +114,6 @@ local function create()
 
         source          = nil,                     -- source
         sourceLastValue = 0,                       -- last source value
-        sourceShow      = true,                    -- source switch
         titleShow       = true,                    -- title switch
         titleText       = STR("Title"),            -- title text
         titleColorUse   = true,                    -- title color switch
@@ -131,19 +129,16 @@ local function create()
         },
         debugMode       = false, -- true: shows internal values in the widget
 
+        -- get source name function
+        getSourceName   = function(self) return (wHelper.existSource(self.source) and self.source:name()) or "---" end,
         -- get source value function
         getSourceValue  = function(self) return (wHelper.existSource(self.source) and self.source:value()) or 0 end,
         -- get source text function
         getSourceText   = function(self) return (wHelper.existSource(self.source) and self.source:stringValue()) or "" end,
-        -- get state function -> 1-3 meant(down/middle/up)
+        -- get state function (DOWN, MIDDLE, UP)
         getState        = function(self)
-            if self:getSourceValue() < self.thresholdDown then
-                return STATE.DOWN
-            elseif self:getSourceValue() < self.thresholdUp then
-                return STATE.MIDDLE
-            else
-                return STATE.UP
-            end
+            local x = self:getSourceValue()
+            return (x < self.thresholdDown and STATE.DOWN) or (x < self.thresholdUp and STATE.MIDDLE) or STATE.UP
         end,
         getStateTitle   = function(self) return self.states[self:getState()].title end,
         getStateText    = function(self) return self.states[self:getState()].text end,
@@ -178,12 +173,14 @@ local function paint(widget)
     ---   _v    -> widget:getSourceValue() as number (without decimals) -> "8"
     ---   _<N>v -> widget:getSourceValue() as float with N decimals (e.g., _3v for three decimals) -> "7,532"
     ---   _t    -> widget:getSourceText()-> "7,5V"
+    ---   _n    -> widget:getSourceName() -> "Battery Voltage"
     ---   __    -> literal "_"
     local function formatText(stateText)
         -- local debug = wHelper.Debug:new(widget.no, "formatText")
         local UNDERSCORE_PLACEHOLDER = "\1"
-        local sourceValue = (widget and widget:getSourceValue()) or 0
-        local sourceText = (widget and widget:getSourceText()) or ""
+        local sourceValue = widget and widget:getSourceValue()
+        local sourceText = widget and widget:getSourceText()
+        local sourceName = widget and widget:getSourceName()
         local text = stateText or ""
         -- debug:info("Input: " .. s .. ", value: " .. val .. ", text: " .. txt)
 
@@ -198,7 +195,8 @@ local function paint(widget)
                 return string.format(formatStr, tonumber(sourceValue) or 0)
             end)
         text = text:gsub("_v", string.format("%.0f", tonumber(sourceValue) or 0)) -- value: replace default float _v as value number (float without decimals)
-        text = text:gsub("_t", function() return tostring(sourceText) end)        -- text: replace _t as value text (use function replacement so '%' in txt is not interpreted)
+        text = text:gsub("_t", function() return tostring(sourceText) end)        -- text: replace _t as value text
+        text = text:gsub("_n", function() return tostring(sourceName) end)        -- text: replace _n_ as source name
         text = text:gsub(UNDERSCORE_PLACEHOLDER, "_")                             -- restore literal underscore
 
         return text
@@ -208,31 +206,8 @@ local function paint(widget)
     --- Paint title text.
     local function paintTitle()
         -- local debug = wHelper.Debug:new(widget.no, "paintTitle"):info()
-        local sourceText = ""
-        local titleText = ""
-
-        if not widget.sourceShow and not widget.titleShow then return end -- title disabled
-
-        -- set source text
-        if widget.sourceShow then
-            if wHelper.existSource(widget.source) then
-                sourceText = widget.source:name()
-            else
-                sourceText = "---"
-            end
-        end
-
-        -- set title text
-        if widget.titleShow and wHelper.existText(widget.titleText) then
-            titleText = formatText(widget.titleText)
-        end
-
-        -- combine source and title text
-        if wHelper.existText(sourceText) and wHelper.existText(titleText) then -- both texts existent
-            titleText = sourceText .. ": " .. titleText
-        elseif wHelper.existText(sourceText) then                              -- only source text existent
-            titleText = sourceText
-        end
+        if not widget.titleShow then return end -- title disabled
+        local titleText = formatText(widget.titleText)
 
         -- paint title
         if widget.titleColorUse then
@@ -393,7 +368,6 @@ local function configure(widget)
 
     -- Title
     wConfig.startPanel("Title")
-    wConfig.addBooleanField("sourceShow")
     wConfig.addBooleanField("titleShow")
     wConfig.addTextField("titleText")
     wConfig.addBooleanField("titleColorUse")
@@ -439,7 +413,6 @@ local function write(widget)
 
     -- Source and source switch
     wStorage.write("source")
-    wStorage.write("sourceShow")
 
     -- title show, text, background color and text color
     wStorage.write("titleShow")
@@ -467,6 +440,7 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --- Handler to read (load) the widget configuration.
 local function read(widget)
+    local titlePrefix = ""
     local debug = wHelper.Debug:new(widget.no, "read"):info()
     wStorage.init({ storage = storage, widget = widget })
 
@@ -489,7 +463,16 @@ local function read(widget)
         -- Version > 1.0.0 first field is version number -> read source
         wStorage.read("source")
     end
-    wStorage.read("sourceShow")
+
+    if versionNumber < 20000 then
+        -- Version < 2.0.0: read ol value "SourceShow"
+        local showSource = storage.read("SourceShow")
+        if showSource then
+            titlePrefix = "_n: "
+        end
+        debug:info("version < 2.0.0 -> SourceShow = " ..
+            tostring(showSource) .. ", titlePrefix = '" .. titlePrefix .. "'")
+    end
 
     -- title text, background color and text color
     wStorage.read("titleShow")
@@ -497,6 +480,7 @@ local function read(widget)
     wStorage.read("titleBgColor")
     wStorage.read("titleTxColor")
     wStorage.read("titleColorUse")
+    widget.titleText = titlePrefix .. widget.titleText
 
     -- state thresholds and font size
     wStorage.read("thresholdDown")
