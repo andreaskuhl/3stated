@@ -87,6 +87,8 @@ Example state displays:
 
 ![Example state displays](./images/example.png)
 
+The corresponding example model file is included in the release: see "extra 3stated.bin".
+
 # Release Information
 
 | Version |   Date     | Changes                                                                                                                                                                                                                              |

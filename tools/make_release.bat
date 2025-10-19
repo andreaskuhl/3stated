@@ -16,16 +16,19 @@ set TMPDIR=_zip_temp
 rd /s /q "%TMPDIR%" 2>nul
 mkdir "%TMPDIR%\%BASENAME%"
 
-REM 1. *.pdf -> *.pdf
-copy /Y "%BASEDIR%\*.pdf" "%TMPDIR%\" >nul
-
-REM 2. LICENSE -> LICENSE.txt
-copy /Y "%BASEDIR%\LICENSE" "%TMPDIR%\LICENSE.txt" >nul
-
-REM 3. main.lua -> %BASENAME%/main.lua
+REM 1. main.lua -> %BASENAME%/main.lua
 copy /Y "%BASEDIR%\main.lua" "%TMPDIR%\%BASENAME%\main.lua" >nul
 
-REM 4. Verzeichnisse i18n und lib  -> %BASENAME%/*
+REM 2. *.pdf -> *.pdf
+copy /Y "%BASEDIR%\*.pdf" "%TMPDIR%\" >nul
+
+REM 3. *.bin -> *.bin (models   )
+copy /Y "%BASEDIR%\*.bin" "%TMPDIR%\" >nul
+
+REM 4. LICENSE -> LICENSE.txt
+copy /Y "%BASEDIR%\LICENSE" "%TMPDIR%\LICENSE.txt" >nul
+
+REM 5. Verzeichnisse i18n und lib  -> %BASENAME%/*
 xcopy /E /I /Y "%BASEDIR%\i18n" "%TMPDIR%\%BASENAME%\i18n" >nul
 xcopy /E /I /Y "%BASEDIR%\lib" "%TMPDIR%\%BASENAME%\lib" >nul
 

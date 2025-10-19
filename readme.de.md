@@ -88,6 +88,7 @@ Beispiel-Zustandsanzeigen:
 
 ![Beispiel Staus-Anzeigen](./images/example.png)
 
+Die passende Beispiel-Modelldatei ist Teil des Release: siehe "extra 3stated.bin".
 
 # Release Informationen
 
