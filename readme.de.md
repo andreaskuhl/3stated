@@ -52,13 +52,14 @@ Wenn es Ihnen gefällt, können Sie es mit einer Spende unterstützen!
                  Schwellenwerte.
   - **Titel und Quelle anzeigen** (jeweils schaltbar), in klein oberhalb des Zustandstextes. Der Titelbereich kann dabei wahlweise in den Zustandsfarben angezeigt werden oder mit gesondert definierten Farben für Hintergrund und Text.
   - **Mehrzeiliger Zustandstext**. Einfach im jeweiligen Zustandstext "\_b" (für "line break") als Zeilentrenner einfügen. Beliebig viele Zeilen sind möglich, aber durch Textlänge, Widget- und Schriftgröße begrenzt.  
-  - **Wertanzeige**. Einfach im jeweiligen Zustandstext folgende Platzhalter eintragen:
-    - Text des Quellwertes (text): "\_t" - 
+  - **Quell-/Wertanzeige**. Einfach im jeweiligen Zustandstext folgende Platzhalter eintragen:
+    - Name der Quelle (name): "\_n"
+    - Text des Quellwertes (text): "\_t" 
     - Numerischer Quellwert (value): "\_v"
     - "... mit \<N\> Nachkommastellen gerundet: "\_<N>v"
     - Sonderzeichen \_: "\_\_"  
-    Beispiel: "Akku: \_t (\_1v)" ergibt "Akku: 5.27V (5.3)"  
-    Das geht mit allen Arten von Quellen, also auch Flugphasen, Schalter, Telemetrie- und Systemwerte.
+    Beispiel: "\_n: \_t (\_1v)" ergibt "Empf.Bat: 5.27V (5.3)"  
+    Dies funktioniert mit allen Arten von Quellen, also auch Flugphasen, Schalter, Telemetrie- und Systemwerte.
 
   - **Analyse-Modus** (schaltbar): Ausgabe von Quelle, Wert und Zustandstext. U.a. zum Testen und Ermitteln passender Schwellwerte.
   - **Lokalisierung**: Deutsch (de), Englisch (en), Französisch (fr), Spanisch (es), Italienisch (it) und Tschechisch (cs)
@@ -92,7 +93,7 @@ Beispiel-Zustandsanzeigen:
 
 | Version |   Datum    | Veränderung                                                                                                                                                                                                                          |
 | ------: | :--------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-|   2.0.0 | 17.10.2025 | Neue Funktion: Wertanzeige im Zustandstext oder Titel (numerischer oder textueller Quell-Wert), Restrukturierung der Widget-Konfiguration und Code-Verbesserung                                                                      |
+|   2.0.0 | 19.10.2025 | Neue Funktionen: Wertanzeige im Zustandstext oder Titel (numerischer oder textueller Quell-Wert), Restrukturierung der Widget-Konfiguration, "Quelle anzeigen" durch Platzhalter "_n"ersetzt und Code-Verbesserung                                                                      |
 |   1.1.0 | 09.09.2025 | Neue Funktion: Mehrzeiliger Zustandstext                                                                                                                                                                                             |
 |   1.0.2 | 02.09.2025 | Implementierung der Benutzerdaten-Versionsnummer zur Identifizierung und Konvertierung älterer Benutzerdaten älterer Widget-Versions-Daten. Interne Erweiterung für zukünftige Verwendung - kein Update aus Benutzersicht notwendig. |
 |   1.0.1 | 31.08.2025 | Aktualisierung Readme: Angepasste Installations-Beschreibung. Kein eigenständiges Release-Paket.                                                                                                                                     |

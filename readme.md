@@ -51,12 +51,13 @@ If you like it you can support it by making a donation!
                 threshold values.
   - **Display title and source** (each switchable), in small text above the state text. The title area can optionally be displayed in the state colors or with separately defined colors for background and text.
   - **Multi-line state text**. Simply insert "\_b" (for "line break") as line separator in the respective state text. Any number of lines is possible but limited by text length, widget, and font size.  
-  - **Value display**. Simply enter the following placeholders in the respective state text:
-    - Text of the source value (text): "\_t"
-    - Numeric source value (value): "\_v"
+  - **Source/Value display**. Simply enter the following placeholders in the respective state text:
+    - Name of the source (name): "_n"
+    - Text of the source value (text): "_t"
+    - Numeric source value (value): "_v"
     - "... rounded to \<N\> decimal places: "\_\<N\>v"
-    - Special character \_: "\_\_"  
-    Example: "Battery: \_t (\_1v)" results in "Battery: 5.27V (5.3)"  
+    - Special character _: "__"  
+    Example: "_n: _t (_1v)" results in "Rx.Bat: 5.27V (5.3)"  
     This works with all types of sources, including flight phases, switches, telemetry, and system values.
 
   - **Analysis mode** (switchable): Output of source, value, and state text. Useful for testing and determining appropriate threshold values.
@@ -90,7 +91,7 @@ Example state displays:
 
 | Version |   Date     | Changes                                                                                                                                                                                                                              |
 | ------: | :--------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-|   2.0.0 | 17.10.2025 | New feature: Value display in state text or title (numeric or textual source value), restructuring of widget configuration and code improvement                                                                                        |
+|   2.0.0 | 19.10.2025 | New features: Value display in state text or title (numeric or textual source value), restructuring of widget configuration, "Show source" replaced by placeholder "_n" and code improvement                                            |
 |   1.1.0 | 09.09.2025 | New feature: Multi-line state text                                                                                                                                                                                                   |
 |   1.0.2 | 02.09.2025 | Implementation of user data version number for identification and conversion of older user data from older widget versions. Internal extension for future use - no update necessary from user perspective.                              |
 |   1.0.1 | 31.08.2025 | Update Readme: Adjusted installation description. No standalone release package.                                                                                                                                                       |

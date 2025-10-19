@@ -385,6 +385,7 @@ local function configure(widget)
 
     -- Placeholder Information
     wConfig.startPanel("PlaceholderInfo")
+    wConfig.addStaticText("PlaceholderName", "_n")
     wConfig.addStaticText("PlaceholderText", "_t")
     wConfig.addStaticText("PlaceholderValue", "_v")
     wConfig.addStaticText("PlaceholderFloat", "_<N>v")
