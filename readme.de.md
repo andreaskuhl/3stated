@@ -8,7 +8,7 @@
 <h1 name="top"> 3STATED | 3-Zustand-Anzeige </h1>
 
 Widget für die textuelle und farbliche Anzeige von 3 Zuständen einer Quelle (Schalter, Variablen, ...).  
-Version 2.0.0
+Version 2.0.1
 
 |                      |                                                     |
 | -------------------- | --------------------------------------------------- |
@@ -94,8 +94,9 @@ Die passende Beispiel-Modelldatei ist Teil des Release: siehe "extra 3stated.bin
 
 | Version |   Datum    | Veränderung                                                                                                                                                                                                                          |
 | ------: | :--------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-|   2.0.0 | 19.10.2025 | Neue Funktionen: Wertanzeige im Zustandstext oder Titel (numerischer oder textueller Quell-Wert), Restrukturierung der Widget-Konfiguration, "Quelle anzeigen" durch Platzhalter "_n" ersetzt und Code-Verbesserung                                                                      |
-|   1.1.0 | 09.09.2025 | Neue Funktion: Mehrzeiliger Zustandstext                                                                                                                                                                                             |
+|   2.0.1 | 30.12.2025 | Fehlerbehebung: Bei der Konfiguration der Schwellwerte, kam es zu Problemen bei Einstellen von kleinen Nachkommastellen ... dies ist jetzt behoben.                                                                                  |
+|   2.0.0 | 19.10.2025 | Neue Funktionen: Wertanzeige im Zustandstext oder Titel (numerischer oder textueller Quell-Wert), Restrukturierung der Widget-Konfiguration, "Quelle anzeigen" durch Platzhalter "_n" ersetzt und Code-Verbesserung.                 |
+|   1.1.0 | 09.09.2025 | Neue Funktion: Mehrzeiliger Zustandstext.                                                                                                                                                                                             |
 |   1.0.2 | 02.09.2025 | Implementierung der Benutzerdaten-Versionsnummer zur Identifizierung und Konvertierung älterer Benutzerdaten älterer Widget-Versions-Daten. Interne Erweiterung für zukünftige Verwendung - kein Update aus Benutzersicht notwendig. |
 |   1.0.1 | 31.08.2025 | Aktualisierung Readme: Angepasste Installations-Beschreibung. Kein eigenständiges Release-Paket.                                                                                                                                     |
 |   1.0.0 | 31.08.2025 | Erstes offizielles Release.                                                                                                                                                                                                          |

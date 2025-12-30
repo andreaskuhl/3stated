@@ -7,7 +7,7 @@
 <h1 name="top"> 3STATED | 3-State Display </h1>
 
 Widget for textual and colored display of 3 states from a source (switch, variables, ...).  
-Version 2.0.0
+Version 2.0.1
 
 |                  |                                                     |
 | ---------------- | --------------------------------------------------- |
@@ -91,12 +91,13 @@ The corresponding example model file is included in the release: see "extra 3sta
 
 # Release Information
 
-| Version |   Date     | Changes                                                                                                                                                                                                                              |
-| ------: | :--------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-|   2.0.0 | 19.10.2025 | New features: Value display in state text or title (numeric or textual source value), restructuring of widget configuration, "Show source" replaced by placeholder "_n" and code improvement                                            |
-|   1.1.0 | 09.09.2025 | New feature: Multi-line state text                                                                                                                                                                                                   |
-|   1.0.2 | 02.09.2025 | Implementation of user data version number for identification and conversion of older user data from older widget versions. Internal extension for future use - no update necessary from user perspective.                              |
-|   1.0.1 | 31.08.2025 | Update Readme: Adjusted installation description. No standalone release package.                                                                                                                                                       |
-|   1.0.0 | 31.08.2025 | First official release.                                                                                                                                                                                                              |
+| Version |    Date    | Changes                                                                                                                                                                                                    |
+| ------: | :--------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|   2.0.1 | 30.12.2025 | Bug fix: There were problems configuring thresholds when setting small decimal places... this has now been fixed.                                                                                          |
+|   2.0.0 | 19.10.2025 | New features: Value display in state text or title (numeric or textual source value), restructuring of widget configuration, "Show source" replaced by placeholder "_n" and code improvement               |
+|   1.1.0 | 09.09.2025 | New feature: Multi-line state text                                                                                                                                                                         |
+|   1.0.2 | 02.09.2025 | Implementation of user data version number for identification and conversion of older user data from older widget versions. Internal extension for future use - no update necessary from user perspective. |
+|   1.0.1 | 31.08.2025 | Update Readme: Adjusted installation description. No standalone release package.                                                                                                                           |
+|   1.0.0 | 31.08.2025 | First official release.                                                                                                                                                                                    |
 
 [↑ Back to top](#top)
