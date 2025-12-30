@@ -15,7 +15,7 @@
 ---    addStaticText(title, text)
 ---    return function(parameters)
 ---
----  Version:                 1.1.0
+---  Version:                 1.1.1
 ---  Development Environment: Ethos X20S Simulator Version 1.6.3
 ---  Test Environment:        FrSky Tandem X20 | Ethos 1.6.3 EU
 ---
@@ -132,13 +132,15 @@ end
 ------------------------------------------------------------------------------------------------------------------------
 --- Add number field
 function wConfig.addNumberField(key, min, max, precision)
-    if not wConfig.existWidgetKey("addNumberField", key) then return end
     precision = precision or 0
     local factor = 10 ^ precision
+    local function factor_int(x) return math.floor(x * factor + 0.5) end    -- convert & round to nearest factor integer
+    local function factor_float(x) return math.floor(x + 0.5) / factor end  -- reconvert & round to nearest factor float
+    if not wConfig.existWidgetKey("addNumberField", key) then return end
     line = wConfig.addLine(CFL(key))
-    return (form.addNumberField(line, nil, min * factor, max * factor,
-        function() return widget[key]*factor end,
-        function(value) widget[key] = value/factor end)
+    return (form.addNumberField(line, nil, factor_int(min), factor_int(max),
+        function() return factor_int(widget[key]) end,
+        function(value) widget[key] = factor_float(value) end)
     ):decimals(precision)
 end
 
