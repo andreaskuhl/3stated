@@ -21,10 +21,10 @@
 ------------------------------------------------------------------------------------------------------------------------
 
 --- Application control and information
-local WIDGET_VERSION      = "2.0.0"                                 -- version information
+local WIDGET_VERSION      = "2.0.1"                                 -- version information
 local WIDGET_KEY          = "3STATED"                               -- unique widget key (max. 7 characters)
 local WIDGET_AUTOR        = "Andreas Kuhl (github.com/andreaskuhl)" -- author information
-local DEBUG_MODE          = true                                   -- true: show debug information, false: release mode
+local DEBUG_MODE          = false                                   -- true: show debug information, false: release mode
 local widgetCounter       = 0                                       -- debug: counter for widget instances (0 = no instance)
 
 --- Libraries
