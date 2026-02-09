@@ -274,7 +274,7 @@ local function paint(widget)
 
         -- paint background
         lcd.color(widget:getStateBgColor())
-        lcd.drawFilledRectangle(0, 0, widget.width, widget.height)
+        lcd.drawFilledRectangle(wPaint.TRANSPARENCY_X_OFFSET, wPaint.TRANSPARENCY_Y_OFFSET, widget.width - (2 * wPaint.TRANSPARENCY_X_OFFSET), widget.height - (2 * wPaint.TRANSPARENCY_Y_OFFSET))
 
         -- paint title (must be before paint state text or debug information)
         paintTitle()
@@ -295,7 +295,7 @@ local function paint(widget)
     local function paintSourceMissed()
         local debug = wHelper.Debug:new(widget.no, "paintSourceMissed"):info()
         lcd.color(COLOR_BLACK)
-        lcd.drawFilledRectangle(0, 0, widget.width, widget.height)
+        lcd.drawFilledRectangle(wPaint.TRANSPARENCY_X_OFFSET, wPaint.TRANSPARENCY_Y_OFFSET, widget.width - (2 * wPaint.TRANSPARENCY_X_OFFSET), widget.height - (2 * wPaint.TRANSPARENCY_Y_OFFSET))
 
         --- paint title
         paintTitle()
@@ -356,12 +356,68 @@ local function configure(widget)
     updateLanguage(widget) -- check if system language has changed
     wConfig.init({ form = form, widget = widget, STR = STR })
 
-    -- Source
-    wConfig.addSourceField("source")
+    -- Source and thresholds
+    local function sourcePrecision(source)
+        local precision = THRESHOLD_PRECISION
+        if wHelper.existSource(source) and source.decimals and source:decimals()~=nil then
+            precision = source:decimals()
+        end
+        return precision
+    end
+    local function sourceFactorInt(x, source) -- adjust on source change
+        local precision = sourcePrecision(source)
+        local factor = 10 ^ precision
+        return math.floor(x * factor + 0.5)    -- convert & round to nearest factor integer
+    end
+    local function sourceFactorFloat(x, source) -- adjust on source change
+        local precision =  sourcePrecision(source)
+        local factor = 10 ^ precision
+        return math.floor(x + 0.5) / factor -- reconvert & round to nearest factor float
+    end
+    local function updateFieldRange(field, source)
+        local precision = sourcePrecision(source)
+        local min = -THRESHOLD_RANGE
+        local max = THRESHOLD_RANGE
+        if wHelper.existSource(source) then
+            if source.minimum and source:minimum()~=nil then
+                min = source:minimum()
+            end
+            if source.maximum and source:maximum()~=nil then
+                max = source:maximum()
+            end
+        end
+        if field then
+            field:decimals(precision)
+            field:minimum(sourceFactorInt(min, source))
+            field:maximum(sourceFactorInt(max, source))
+        end
+    end
+
+    line = wConfig.addLine(wHelper.capitalizeFirstLetter("source"))
+    local thresholdDownField
+    local thresholdUpField
+    local sourceField = form.addSourceField(line, nil, function() return widget["source"] end,
+        function(value)
+            widget["source"] = value
+            updateFieldRange(thresholdDownField, value)
+            updateFieldRange(thresholdUpField, value)
+        end)
 
     -- thresholds
-    wConfig.addNumberField("thresholdDown", -THRESHOLD_RANGE, THRESHOLD_RANGE, THRESHOLD_PRECISION)
-    wConfig.addNumberField("thresholdUp", -THRESHOLD_RANGE, THRESHOLD_RANGE, THRESHOLD_PRECISION)
+
+    line = wConfig.addLine(wHelper.capitalizeFirstLetter("thresholdDown"))
+    thresholdDownField = form.addNumberField(line, nil, 0, 0, -- min max adjusted in updateFieldRangeForSource
+        function() return sourceFactorInt(widget["thresholdDown"], widget.source) end,
+        function(value) widget["thresholdDown"] = sourceFactorFloat(value, widget.source) end
+    )
+    updateFieldRange(thresholdDownField, widget.source)
+
+    line = wConfig.addLine(wHelper.capitalizeFirstLetter("thresholdUp"))
+    thresholdUpField = form.addNumberField(line, nil, 0, 0, -- min max adjusted in updateFieldRangeForSource
+        function() return sourceFactorInt(widget["thresholdUp"], widget.source) end,
+        function(value) widget["thresholdUp"] = sourceFactorFloat(value, widget.source) end
+    )
+    updateFieldRange(thresholdUpField, widget.source)
 
     -- Font size
     wConfig.addChoiceField("fontSizeIndex", FONT_SIZE_SELECTION)
@@ -499,6 +555,25 @@ local function read(widget)
     wStorage.read("debugMode")
 end
 
+local function menu(widget)
+    local CATEGORY_LUA = 29
+    if wHelper.existSource(widget.source) and widget.source.reset then
+        local category = widget.source:category()
+        if
+            category == CATEGORY_TIMER or
+            category == CATEGORY_TELEMETRY_SENSOR or
+            category == CATEGORY_LUA
+        then
+            return {
+                {string.format(STR("SourceReset"), widget.source:name()),
+                function()
+                widget.source:reset()
+                end},
+            }
+        end
+    end
+    return {}
+end
 ------------------------------------------------------------------------------------------------------------------------
 --- Initialize the widget (register it in the system).
 local function init()
@@ -512,6 +587,7 @@ local function init()
         configure = configure,
         read = read,
         write = write,
+        menu=menu,
         title = false
     })
 end
